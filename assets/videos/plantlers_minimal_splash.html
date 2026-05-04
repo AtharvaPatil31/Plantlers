@@ -1,0 +1,138 @@
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+.wrap{display:flex;flex-direction:column;align-items:center;padding:1.5rem 0 1rem}
+.phone{width:240px;height:460px;border-radius:32px;border:1.5px solid #DEDAD4;overflow:hidden;background:#ECEAE5;position:relative}
+canvas{display:block}
+.ctrls{display:flex;gap:8px;margin-top:12px;width:320px;justify-content:center}
+.ctrls button{padding:8px 20px;border-radius:8px;border:1px solid #CCC8C0;background:#F5F3EF;color:#2A2A2A;font-size:13px;font-weight:500;cursor:pointer}
+.ctrls button:hover{background:#E8E5DF}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;width:320px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:11px;color:#888}
+.field input[type=text]{padding:6px 8px;border-radius:6px;border:1px solid #CCC8C0;font-size:13px;background:#F5F3EF;color:#1A1A1A;width:100%}
+.field input[type=color]{width:100%;height:30px;border-radius:6px;border:1px solid #CCC8C0;cursor:pointer;padding:2px}
+.apply{margin-top:8px;width:320px;padding:9px;border-radius:8px;border:none;background:#1A1A1A;color:#fff;font-size:13px;font-weight:500;cursor:pointer}
+.apply:hover{background:#333}
+</style>
+
+<h2 class="sr-only">Plantlers minimal letter-scatter splash screen animation</h2>
+
+<div class="wrap">
+  <div class="phone">
+    <canvas id="c" width="240" height="460"></canvas>
+  </div>
+  <div class="ctrls">
+    <button id="btnPlay">Play again</button>
+  </div>
+  <div class="fields">
+    <div class="field"><label>App name</label><input type="text" id="iName" value="Plantlers" maxlength="12"></div>
+    <div class="field"><label>Background</label><input type="color" id="iBg" value="#ECEAE5"></div>
+    <div class="field"><label>Text color</label><input type="color" id="iText" value="#1A1A1A"></div>
+    <div class="field"><label>Font size</label><input type="text" id="iSize" value="38" maxlength="3"></div>
+  </div>
+  <button class="apply" id="btnApply">Apply &amp; replay</button>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W=240, H=460;
+let raf=null, frame=0;
+const DUR=160;
+
+let C={bg:'#ECEAE5',text:'#1A1A1A',name:'Plantlers',size:38};
+
+const easeOutExpo=t=>t===1?1:1-Math.pow(2,-10*t);
+const easeInOutQuart=t=>t<0.5?8*t*t*t*t:1-Math.pow(-2*t+2,4)/2;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const prog=(f,s,e)=>clamp((f-s)/(e-s),0,1);
+
+function getLetterData(name, fontSize){
+  ctx.font=`700 ${fontSize}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
+  ctx.textAlign='left';
+  ctx.textBaseline='alphabetic';
+  const letters=name.split('');
+  const widths=letters.map(l=>ctx.measureText(l).width);
+  const totalW=widths.reduce((a,b)=>a+b,0);
+  const spacing=fontSize*0.02;
+  const totalWithSpacing=totalW+(letters.length-1)*spacing;
+  let cx=W/2-totalWithSpacing/2;
+  const finalY=H/2+fontSize*0.35;
+  const positions=[];
+  letters.forEach((l,i)=>{
+    positions.push({letter:l, finalX:cx, finalY, w:widths[i]});
+    cx+=widths[i]+spacing;
+  });
+  return positions;
+}
+
+function draw(f){
+  ctx.fillStyle=C.bg;
+  ctx.fillRect(0,0,W,H);
+
+  const fontSize=parseInt(C.size)||38;
+  const letters=getLetterData(C.name, fontSize);
+  const n=letters.length;
+
+  const scatterPhase=prog(f,0,30);
+  const gatherPhase=prog(f,25,90);
+  const growPhase=prog(f,70,120);
+  const fadeInPhase=prog(f,110,145);
+
+  const seed=[0.38,0.82,0.15,0.67,0.29,0.91,0.44,0.73,0.06,0.55,0.88,0.22];
+
+  letters.forEach((ld,i)=>{
+    const s=seed[i%seed.length];
+    const s2=seed[(i+3)%seed.length];
+
+    const scatterX=lerp(W/2,W*0.1+s*W*0.8,1-easeOutExpo(scatterPhase));
+    const scatterY=lerp(H/2,H*0.35+s2*H*0.25,1-easeOutExpo(scatterPhase));
+
+    const gp=easeOutExpo(gatherPhase);
+    const currX=lerp(scatterX,ld.finalX,gp);
+    const currY=lerp(scatterY,ld.finalY,gp);
+
+    const baseSize=fontSize*0.28;
+    const fullSize=fontSize;
+    const gsp=easeInOutQuart(growPhase);
+    const currSize=lerp(baseSize,fullSize,gsp);
+
+    const alpha=scatterPhase>0?(fadeInPhase<1?0.55+fadeInPhase*0.45:1):(scatterPhase*2);
+    ctx.globalAlpha=clamp(alpha,0,1);
+    ctx.fillStyle=C.text;
+    ctx.font=`700 ${currSize}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
+    ctx.textAlign='left';
+    ctx.textBaseline='alphabetic';
+
+    const scaleOffset=(fullSize-currSize)*0.5;
+    ctx.fillText(ld.letter, currX, currY+scaleOffset);
+  });
+
+  ctx.globalAlpha=1;
+}
+
+function animate(){
+  frame++;
+  draw(frame);
+  if(frame<DUR) raf=requestAnimationFrame(animate);
+}
+
+function play(){
+  if(raf) cancelAnimationFrame(raf);
+  frame=0;
+  animate();
+}
+
+document.getElementById('btnPlay').onclick=play;
+document.getElementById('btnApply').onclick=()=>{
+  C.bg=document.getElementById('iBg').value;
+  C.text=document.getElementById('iText').value;
+  C.name=document.getElementById('iName').value||'Plantlers';
+  C.size=document.getElementById('iSize').value||'38';
+  play();
+};
+
+play();
+</script>

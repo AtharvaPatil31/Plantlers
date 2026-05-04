@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Solid brand green base -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#00450D" />
+        </shape>
+    </item>
+
+    <!-- Subtle radial glow — matches Flutter SplashPage RadialGradient -->
+    <!-- center: #1B5E20 at 0%, edge: #00450D at 100% -->
+    <item android:gravity="center">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="400dp"
+                android:startColor="#331B5E20"
+                android:endColor="#00000000" />
+            <size android:width="800dp" android:height="800dp" />
+        </shape>
+    </item>
+
+</layer-list>
