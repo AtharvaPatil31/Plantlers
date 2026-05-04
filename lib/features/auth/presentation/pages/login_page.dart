@@ -96,55 +96,76 @@ class _LoginViewState extends State<_LoginView> {
             child: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 48),
 
-                  // ── PLANTLERS wordmark ──────────────────────────────────
-                  Text(
-                    'PLANTLERS',
-                    style: GoogleFonts.dmSerifDisplay(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w400,
-                      color: textColor,
-                      letterSpacing: 3,
+                  // ── App logo ────────────────────────────────────────────
+                  Center(
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: _primaryGreen,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _primaryGreen.withValues(alpha: 0.30),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Image.asset(
+                          'assets/ic_plantlers_new_logo/applogo.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
 
                   // ── Welcome Back + leaf ─────────────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Welcome Back',
-                        style: GoogleFonts.dmSerifDisplay(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w400,
-                          color: textColor,
-                          height: 1.1,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Welcome Back',
+                          style: GoogleFonts.dmSerifDisplay(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w400,
+                            color: textColor,
+                            height: 1.1,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Image.asset(
-                        'assets/images/auth/login/leaf.png',
-                        height: 36,
-                        width: 36,
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Image.asset(
+                          'assets/images/auth/login/leaf.png',
+                          height: 36,
+                          width: 36,
+                        ),
+                      ],
+                    ),
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
 
-                  // ── Subtitle ────────────────────────────────────────────
-                  Text(
-                    'Continue your plant journey',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      color: subtitleColor,
+                  // ── Subtitle — left-aligned to match title ──────────────
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Continue your plant journey',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        color: subtitleColor,
+                      ),
                     ),
                   ),
 
