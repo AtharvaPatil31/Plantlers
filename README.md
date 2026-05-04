@@ -8,9 +8,12 @@ Plantlers connects plant lovers with freshly nurtured plants, delivered with car
 
 ## 📱 Screenshots
 
-| App Icon | Splash | Onboarding 1 | Onboarding 2 | Onboarding 3 |
-|----------|--------|--------------|--------------|--------------|
-| <img src="assets/ss/splash_screen/01_app_logo.jpeg" width="180"/> | <img src="assets/ss/splash_screen/02_screen.jpeg" width="180"/> | <img src="assets/ss/onboarding/03_onboard_01.jpeg" width="180"/> | <img src="assets/ss/onboarding/03_onboard_02.jpeg" width="180"/> | <img src="assets/ss/onboarding/03_onboard_03.jpeg" width="180"/> |
+| App Icon | Splash |
+|----------|--------|
+| <img src="assets/ss/splash_screen/01_app_logo.jpeg" width="180"/> | <img src="assets/ss/splash_screen/02_screen.jpeg" width="180"/> |
+
+### Onboarding
+<img src="assets/ss/onboarding/merge.png" width="100%"/>
 
 | Login | Sign Up | Sign Up (scrolled) | Forgot Password |
 |-------|---------|--------------------|-----------------|
