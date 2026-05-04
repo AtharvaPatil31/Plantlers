@@ -3,6 +3,7 @@ import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain/entities/auth_entity.dart';
+import '../../domain/entities/google_auth_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_datasource.dart';
 import '../datasources/auth_remote_datasource.dart';
@@ -25,9 +26,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    if (!await _networkInfo.isConnected) {
-      return const Left(NetworkFailure());
-    }
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
     try {
       final model = await _remoteDataSource.login(email: email, password: password);
       await _localDataSource.cacheAuthData(
@@ -49,9 +48,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     required String name,
   }) async {
-    if (!await _networkInfo.isConnected) {
-      return const Left(NetworkFailure());
-    }
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
     try {
       final model = await _remoteDataSource.register(
         email: email,
@@ -88,7 +85,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, AuthEntity>> getCurrentUser() async {
-    // TODO: implement with GET /user/profile endpoint
     return const Left(UnknownFailure(message: 'getCurrentUser not implemented yet.'));
   }
 
@@ -130,6 +126,35 @@ class AuthRepositoryImpl implements AuthRepository {
         otp: otp,
         newPassword: newPassword,
       );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    }
+  }
+
+  @override
+  Future<Either<Failure, GoogleAuthEntity>> signInWithGoogle() async {
+    try {
+      final model = await _remoteDataSource.signInWithGoogle();
+      // Cache user as logged in after Google sign-in
+      await _localDataSource.cacheAuthData(
+        userId: model.id,
+        accessToken: model.idToken,
+        refreshToken: model.idToken, // Firebase handles refresh internally
+      );
+      return Right(model.toEntity());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } on CacheException catch (e) {
+      return Left(CacheFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> signOutGoogle() async {
+    try {
+      await _remoteDataSource.signOutGoogle();
+      await _localDataSource.clearAuthData();
       return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message, statusCode: e.statusCode));

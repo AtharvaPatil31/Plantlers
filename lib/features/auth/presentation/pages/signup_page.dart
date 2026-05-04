@@ -100,7 +100,7 @@ class _SignupViewState extends State<_SignupView> {
 
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is AuthAuthenticated) {
+        if (state is AuthAuthenticated || state is AuthGoogleAuthenticated) {
           context.go(AppRoutes.home);
         } else if (state is AuthFailure) {
           context.showSnackBar(state.message, isError: true);
@@ -184,14 +184,25 @@ class _SignupViewState extends State<_SignupView> {
                   const SizedBox(height: 20),
 
                   // ── Google button ─────────────────────────────────
-                  _GoogleButton(
-                    bgColor: isDark ? AppColors.darkSurfaceVariant : Colors.white,
-                    borderColor: isDark
-                        ? AppColors.darkDivider
-                        : const Color(0xFF41493E).withValues(alpha: 0.2),
-                    textColor: isDark
-                        ? AppColors.darkTextPrimary
-                        : const Color(0xFF41493E),
+                  BlocBuilder<AuthBloc, AuthState>(
+                    builder: (context, state) {
+                      final isLoading = state is AuthLoading;
+                      return _GoogleButton(
+                        bgColor: isDark ? AppColors.darkSurfaceVariant : Colors.white,
+                        borderColor: isDark
+                            ? AppColors.darkDivider
+                            : const Color(0xFF41493E).withValues(alpha: 0.2),
+                        textColor: isDark
+                            ? AppColors.darkTextPrimary
+                            : const Color(0xFF41493E),
+                        isLoading: isLoading,
+                        onTap: isLoading
+                            ? null
+                            : () => context
+                                .read<AuthBloc>()
+                                .add(const AuthGoogleSignInRequested()),
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 16),
@@ -592,53 +603,71 @@ class _OrDivider extends StatelessWidget {
   }
 }
 
-// ── Google button (UI only) ───────────────────────────────────────────────────
+// ── Google button ─────────────────────────────────────────────────────────────
 class _GoogleButton extends StatelessWidget {
   final Color bgColor;
   final Color borderColor;
   final Color textColor;
+  final bool isLoading;
+  final VoidCallback? onTap;
 
   const _GoogleButton({
     required this.bgColor,
     required this.borderColor,
     required this.textColor,
+    this.isLoading = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SvgPicture.asset(
-            'assets/images/auth/login/google.svg',
-            width: 22,
-            height: 22,
-          ),
-          const SizedBox(width: 12),
-          Text(
-            'Continue with Google',
-            style: GoogleFonts.dmSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: textColor,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 56,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: isLoading
+            ? const Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: _primaryGreen,
+                  ),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SvgPicture.asset(
+                    'assets/images/auth/login/google.svg',
+                    width: 22,
+                    height: 22,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Continue with Google',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: textColor,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }

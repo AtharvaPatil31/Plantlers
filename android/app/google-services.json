@@ -1,26 +1,51 @@
 {
   "project_info": {
-    "project_number": "532296871524",
-    "project_id": "plantlers",
-    "storage_bucket": "plantlers.firebasestorage.app"
+    "project_number": "325199277423",
+    "project_id": "plantlers-c4da1",
+    "storage_bucket": "plantlers-c4da1.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:532296871524:android:b777a696697cc70a37f971",
+        "mobilesdk_app_id": "1:325199277423:android:08fd459fef85b316a08c9a",
         "android_client_info": {
           "package_name": "com.example.plantlers"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "325199277423-6jp8c625lfpgpp7hqtitb09pm41517l4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.plantlers",
+            "certificate_hash": "753983d6faf4e34e2e5f4f62978c3f15b2098bab"
+          }
+        },
+        {
+          "client_id": "325199277423-anbbs0sp8gs01pduumr5ptljdj784dd9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDmGII8pSU2J3XbV0omDdtRhYr3CKeKzT8"
+          "current_key": "AIzaSyB469m1n2a3v9WqK43FpoInj2fAjDDQIdg"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "325199277423-anbbs0sp8gs01pduumr5ptljdj784dd9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "325199277423-u4lt5deo6i870mbtjup0t6ahu395aqin.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.plantlers"
+              }
+            }
+          ]
         }
       }
     }

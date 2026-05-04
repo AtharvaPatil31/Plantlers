@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Web client ID from google-services.json (client_type: 3) -->
+    <!-- Required by google_sign_in v7+ on Android -->
+    <string name="default_web_client_id">325199277423-anbbs0sp8gs01pduumr5ptljdj784dd9.apps.googleusercontent.com</string>
+</resources>
