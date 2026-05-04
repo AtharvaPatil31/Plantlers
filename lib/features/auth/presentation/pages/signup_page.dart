@@ -528,7 +528,7 @@ class _GradientButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: Container(git commit -m "Resolve README merge conflict"
         width: double.infinity,
         height: 56,
         decoration: BoxDecoration(
