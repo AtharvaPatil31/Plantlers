@@ -147,7 +147,7 @@ class _SignupViewState extends State<_SignupView> {
 
                   // ── Title ─────────────────────────────────────────
                   Text(
-                    'Welcome,\nplant parent',
+                    'Welcome,\nPlant Parent',
                     style: GoogleFonts.dmSerifDisplay(
                       fontSize: 32,
                       fontWeight: FontWeight.w400,
