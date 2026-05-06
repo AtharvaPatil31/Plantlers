@@ -35,6 +35,14 @@ import '../../features/splash/data/repositories/splash_repository_impl.dart';
 import '../../features/splash/domain/repositories/splash_repository.dart';
 import '../../features/splash/domain/usecases/get_app_launch_route_usecase.dart';
 
+import '../../features/home/data/datasources/home_local_datasource.dart';
+import '../../features/home/data/repositories/home_repository_impl.dart';
+import '../../features/home/domain/repositories/home_repository.dart';
+import '../../features/home/domain/usecases/get_plants_usecase.dart';
+import '../../features/home/domain/usecases/filter_plants_usecase.dart';
+import '../../features/home/domain/usecases/search_plants_usecase.dart';
+import '../../features/home/presentation/bloc/home_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> initDependencies() async {
@@ -66,6 +74,7 @@ Future<void> initDependencies() async {
   _initSplash();
   _initOnboarding();
   _initAuth();
+  _initHome();
 }
 
 void _initSplash() {
@@ -133,6 +142,25 @@ void _initAuth() {
       forgotPasswordUseCase: sl<ForgotPasswordUseCase>(),
       verifyOtpUseCase: sl<VerifyOtpUseCase>(),
       resetPasswordUseCase: sl<ResetPasswordUseCase>(),
+    ),
+  );
+}
+
+void _initHome() {
+  sl.registerLazySingleton<HomeLocalDataSource>(
+    () => HomeLocalDataSourceImpl(),
+  );
+  sl.registerLazySingleton<HomeRepository>(
+    () => HomeRepositoryImpl(localDataSource: sl<HomeLocalDataSource>()),
+  );
+  sl.registerLazySingleton(() => GetPlantsUseCase(sl<HomeRepository>()));
+  sl.registerLazySingleton(() => FilterPlantsUseCase(sl<HomeRepository>()));
+  sl.registerLazySingleton(() => SearchPlantsUseCase(sl<HomeRepository>()));
+  sl.registerFactory(
+    () => HomeBloc(
+      getPlantsUseCase: sl<GetPlantsUseCase>(),
+      filterPlantsUseCase: sl<FilterPlantsUseCase>(),
+      searchPlantsUseCase: sl<SearchPlantsUseCase>(),
     ),
   );
 }

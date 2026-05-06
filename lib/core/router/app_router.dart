@@ -5,6 +5,7 @@ import '../../core/services/storage_service.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/signup_page.dart';
+import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import 'app_routes.dart';
@@ -69,7 +70,7 @@ GoRouter createRouter({required StorageService storageService}) {
       GoRoute(
         path: AppRoutes.home,
         name: AppRoutes.homeName,
-        builder: (context, state) => const _PlaceholderPage(title: 'Home'),
+        builder: (context, state) => const HomePage(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
@@ -78,18 +79,4 @@ GoRouter createRouter({required StorageService storageService}) {
       ),
     ),
   );
-}
-
-/// Temporary placeholder — replace each one as you build the real screens.
-class _PlaceholderPage extends StatelessWidget {
-  final String title;
-  const _PlaceholderPage({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(child: Text('$title — coming soon')),
-    );
-  }
 }
