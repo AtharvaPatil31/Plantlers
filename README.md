@@ -35,6 +35,11 @@ Plantlers connects plant lovers with freshly nurtured plants, delivered with car
   </tr>
 </table>
 
+### 🌿 HomeScreen
+<img src="assets/ss/home_screen.jpg" width="75%"/>
+
+---
+
 </div>
 
 ## ✨ Features
