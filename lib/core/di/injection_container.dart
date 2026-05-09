@@ -1,12 +1,8 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../network/dio_client.dart';
-import '../network/network_info.dart';
 import '../router/app_router.dart';
 import '../services/storage_service.dart';
 
@@ -15,6 +11,7 @@ import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/forgot_password_usecase.dart';
+import '../../features/auth/domain/usecases/google_sign_in_usecase.dart';
 import '../../features/auth/domain/usecases/login_usecase.dart';
 import '../../features/auth/domain/usecases/logout_usecase.dart';
 import '../../features/auth/domain/usecases/register_usecase.dart';
@@ -40,7 +37,15 @@ import '../../features/home/domain/repositories/home_repository.dart';
 import '../../features/home/domain/usecases/get_plants_usecase.dart';
 import '../../features/home/domain/usecases/filter_plants_usecase.dart';
 import '../../features/home/domain/usecases/search_plants_usecase.dart';
+import '../../features/home/domain/usecases/get_search_suggestions_usecase.dart';
 import '../../features/home/presentation/bloc/home_bloc.dart';
+
+import '../../features/explore/data/datasources/explore_local_datasource.dart';
+import '../../features/explore/data/repositories/explore_repository_impl.dart';
+import '../../features/explore/domain/repositories/explore_repository.dart';
+import '../../features/explore/domain/usecases/get_explore_data_usecase.dart';
+import '../../features/explore/domain/usecases/filter_explore_usecase.dart';
+import '../../features/explore/presentation/bloc/explore_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -48,8 +53,9 @@ Future<void> initDependencies() async {
   // ── External ─────────────────────────────────────────────────────────────
   final sharedPrefs = await SharedPreferences.getInstance();
   sl.registerLazySingleton<SharedPreferences>(() => sharedPrefs);
-  sl.registerLazySingleton<FlutterSecureStorage>(() => const FlutterSecureStorage());
-  sl.registerLazySingleton<Connectivity>(() => Connectivity());
+  sl.registerLazySingleton<FlutterSecureStorage>(
+    () => const FlutterSecureStorage(),
+  );
 
   // ── Core ─────────────────────────────────────────────────────────────────
   sl.registerLazySingleton<StorageService>(
@@ -57,13 +63,6 @@ Future<void> initDependencies() async {
       secureStorage: sl<FlutterSecureStorage>(),
       prefs: sl<SharedPreferences>(),
     ),
-  );
-  sl.registerLazySingleton<DioClient>(
-    () => DioClient(storageService: sl<StorageService>()),
-  );
-  sl.registerLazySingleton<Dio>(() => sl<DioClient>().dio);
-  sl.registerLazySingleton<NetworkInfo>(
-    () => NetworkInfoImpl(connectivity: sl<Connectivity>()),
   );
   sl.registerLazySingleton<GoRouter>(
     () => createRouter(storageService: sl<StorageService>()),
@@ -74,6 +73,7 @@ Future<void> initDependencies() async {
   _initOnboarding();
   _initAuth();
   _initHome();
+  _initExplore();
 }
 
 void _initSplash() {
@@ -108,8 +108,9 @@ void _initOnboarding() {
 }
 
 void _initAuth() {
+  // Supabase-backed remote datasource — no Dio, no Node.js
   sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(dio: sl<Dio>()),
+    () => AuthRemoteDataSourceImpl(),
   );
   sl.registerLazySingleton<AuthLocalDataSource>(
     () => AuthLocalDataSourceImpl(storageService: sl<StorageService>()),
@@ -117,8 +118,7 @@ void _initAuth() {
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(
       remoteDataSource: sl<AuthRemoteDataSource>(),
-      localDataSource: sl<AuthLocalDataSource>(),
-      networkInfo: sl<NetworkInfo>(),
+      localDataSource:  sl<AuthLocalDataSource>(),
     ),
   );
   sl.registerLazySingleton(() => LoginUseCase(sl<AuthRepository>()));
@@ -127,18 +127,20 @@ void _initAuth() {
   sl.registerLazySingleton(() => ForgotPasswordUseCase(sl<AuthRepository>()));
   sl.registerLazySingleton(() => VerifyOtpUseCase(sl<AuthRepository>()));
   sl.registerLazySingleton(() => ResetPasswordUseCase(sl<AuthRepository>()));
+  sl.registerLazySingleton(() => GoogleSignInUseCase(sl<AuthRepository>()));
   sl.registerFactory(
     () => AuthBloc(
-      loginUseCase: sl<LoginUseCase>(),
-      logoutUseCase: sl<LogoutUseCase>(),
-      registerUseCase: sl<RegisterUseCase>(),
+      loginUseCase:        sl<LoginUseCase>(),
+      logoutUseCase:       sl<LogoutUseCase>(),
+      registerUseCase:     sl<RegisterUseCase>(),
+      googleSignInUseCase: sl<GoogleSignInUseCase>(),
     ),
   );
   sl.registerFactory(
     () => ForgotPasswordBloc(
       forgotPasswordUseCase: sl<ForgotPasswordUseCase>(),
-      verifyOtpUseCase: sl<VerifyOtpUseCase>(),
-      resetPasswordUseCase: sl<ResetPasswordUseCase>(),
+      verifyOtpUseCase:      sl<VerifyOtpUseCase>(),
+      resetPasswordUseCase:  sl<ResetPasswordUseCase>(),
     ),
   );
 }
@@ -153,11 +155,50 @@ void _initHome() {
   sl.registerLazySingleton(() => GetPlantsUseCase(sl<HomeRepository>()));
   sl.registerLazySingleton(() => FilterPlantsUseCase(sl<HomeRepository>()));
   sl.registerLazySingleton(() => SearchPlantsUseCase(sl<HomeRepository>()));
+  sl.registerLazySingleton(
+    () => GetSearchSuggestionsUseCase(sl<HomeRepository>()),
+  );
   sl.registerFactory(
     () => HomeBloc(
-      getPlantsUseCase: sl<GetPlantsUseCase>(),
-      filterPlantsUseCase: sl<FilterPlantsUseCase>(),
-      searchPlantsUseCase: sl<SearchPlantsUseCase>(),
+      getPlantsUseCase:      sl<GetPlantsUseCase>(),
+      filterPlantsUseCase:   sl<FilterPlantsUseCase>(),
+      searchPlantsUseCase:   sl<SearchPlantsUseCase>(),
+      getSuggestionsUseCase: sl<GetSearchSuggestionsUseCase>(),
+    ),
+  );
+}
+
+void _initExplore() {
+  sl.registerLazySingleton<ExploreLocalDataSource>(
+    () => ExploreLocalDataSourceImpl(
+      homeDataSource: sl<HomeLocalDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<ExploreRepository>(
+    () => ExploreRepositoryImpl(dataSource: sl<ExploreLocalDataSource>()),
+  );
+  sl.registerLazySingleton(
+    () => GetExploreDataUseCase(sl<ExploreRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => FilterExploreByCategoryUseCase(sl<ExploreRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => SearchExploreUseCase(sl<ExploreRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => GetPlantsByCareLevelUseCase(sl<ExploreRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => GetPlantsByRoomUseCase(sl<ExploreRepository>()),
+  );
+  sl.registerFactory(
+    () => ExploreBloc(
+      getExploreData:   sl<GetExploreDataUseCase>(),
+      filterByCategory: sl<FilterExploreByCategoryUseCase>(),
+      searchPlants:     sl<SearchExploreUseCase>(),
+      getByLevel:       sl<GetPlantsByCareLevelUseCase>(),
+      getByRoom:        sl<GetPlantsByRoomUseCase>(),
     ),
   );
 }

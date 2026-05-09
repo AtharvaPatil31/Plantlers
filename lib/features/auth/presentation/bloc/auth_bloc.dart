@@ -1,9 +1,11 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/auth_entity.dart';
+import '../../domain/entities/google_auth_entity.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_usecase.dart';
 import '../../domain/usecases/register_usecase.dart';
+import '../../domain/usecases/google_sign_in_usecase.dart';
 import '../../../../core/usecases/usecase.dart';
 
 part 'auth_event.dart';
@@ -13,18 +15,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginUseCase _loginUseCase;
   final LogoutUseCase _logoutUseCase;
   final RegisterUseCase _registerUseCase;
+  final GoogleSignInUseCase _googleSignInUseCase;
 
   AuthBloc({
     required LoginUseCase loginUseCase,
     required LogoutUseCase logoutUseCase,
     required RegisterUseCase registerUseCase,
+    required GoogleSignInUseCase googleSignInUseCase,
   })  : _loginUseCase = loginUseCase,
         _logoutUseCase = logoutUseCase,
         _registerUseCase = registerUseCase,
+        _googleSignInUseCase = googleSignInUseCase,
         super(const AuthInitial()) {
     on<AuthLoginRequested>(_onLoginRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthLogoutRequested>(_onLogoutRequested);
+    on<AuthGoogleSignInRequested>(_onGoogleSignInRequested);
   }
 
   Future<void> _onLoginRequested(
@@ -53,9 +59,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: event.name,
       ),
     );
+
     result.fold(
-      (failure) => emit(AuthFailure(message: failure.message)),
-      (user) => emit(AuthAuthenticated(user: user)),
+      (failure) {
+        final isConfirmation =
+            failure.message.contains('confirm your account') ||
+            failure.message.contains('confirm your email');
+
+        if (isConfirmation) {
+          emit(AuthEmailConfirmationRequired(email: event.email));
+        } else {
+          emit(AuthFailure(message: failure.message));
+        }
+        return; // explicit return to satisfy dartz fold type inference
+      },
+      (user) {
+        emit(AuthAuthenticated(user: user));
+        return;
+      },
     );
   }
 
@@ -68,6 +89,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold(
       (failure) => emit(AuthFailure(message: failure.message)),
       (_) => emit(const AuthUnauthenticated()),
+    );
+  }
+
+  Future<void> _onGoogleSignInRequested(
+    AuthGoogleSignInRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    final result = await _googleSignInUseCase(const NoParams());
+    result.fold(
+      (failure) => emit(AuthFailure(message: failure.message)),
+      (googleUser) => emit(AuthGoogleAuthenticated(googleUser: googleUser)),
     );
   }
 }

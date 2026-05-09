@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../../core/usecases/usecase.dart';
-import '../../domain/usecases/get_app_launch_route_usecase.dart';
+import '../../../../core/services/storage_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -29,14 +29,21 @@ class _SplashPageState extends State<SplashPage> {
     await Future.delayed(const Duration(milliseconds: 2500));
     if (!mounted) return;
 
-    // Use case determines the route — no infrastructure in presentation
-    final result = await sl<GetAppLaunchRouteUseCase>()(const NoParams());
-    if (!mounted) return;
+    final storageService = sl<StorageService>();
 
-    result.fold(
-      (_) => context.go(AppRoutes.onboarding), // fallback on failure
-      (route) => context.go(route),
-    );
+    // Onboarding check
+    if (!storageService.isOnboardingDone) {
+      context.go(AppRoutes.onboarding);
+      return;
+    }
+
+    // Auth check — use Supabase session, not SharedPreferences
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      context.go(AppRoutes.home);
+    } else {
+      context.go(AppRoutes.login);
+    }
   }
 
   @override

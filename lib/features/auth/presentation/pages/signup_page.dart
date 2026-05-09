@@ -100,8 +100,16 @@ class _SignupViewState extends State<_SignupView> {
 
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is AuthAuthenticated) {
+        if (state is AuthAuthenticated || state is AuthGoogleAuthenticated) {
           context.go(AppRoutes.home);
+        } else if (state is AuthEmailConfirmationRequired) {
+          // Replace signup form with confirmation screen
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) =>
+                  _EmailConfirmationPage(email: state.email),
+            ),
+          );
         } else if (state is AuthFailure) {
           context.showSnackBar(state.message, isError: true);
         }
@@ -115,7 +123,15 @@ class _SignupViewState extends State<_SignupView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 16),
+
+                  // ── Back button ───────────────────────────────────
+                  _BackButton(
+                    onTap: () => context.pop(),
+                    isDark: isDark,
+                  ),
+
+                  const SizedBox(height: 20),
 
                   // ── Logo mark ───────────────────────────────────────
                   Center(
@@ -184,14 +200,25 @@ class _SignupViewState extends State<_SignupView> {
                   const SizedBox(height: 20),
 
                   // ── Google button ─────────────────────────────────
-                  _GoogleButton(
-                    bgColor: isDark ? AppColors.darkSurfaceVariant : Colors.white,
-                    borderColor: isDark
-                        ? AppColors.darkDivider
-                        : const Color(0xFF41493E).withValues(alpha: 0.2),
-                    textColor: isDark
-                        ? AppColors.darkTextPrimary
-                        : const Color(0xFF41493E),
+                  BlocBuilder<AuthBloc, AuthState>(
+                    builder: (context, state) {
+                      final isLoading = state is AuthLoading;
+                      return _GoogleButton(
+                        bgColor: isDark ? AppColors.darkSurfaceVariant : Colors.white,
+                        borderColor: isDark
+                            ? AppColors.darkDivider
+                            : const Color(0xFF41493E).withValues(alpha: 0.2),
+                        textColor: isDark
+                            ? AppColors.darkTextPrimary
+                            : const Color(0xFF41493E),
+                        isLoading: isLoading,
+                        onTap: isLoading
+                            ? null
+                            : () => context
+                                .read<AuthBloc>()
+                                .add(const AuthGoogleSignInRequested()),
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 16),
@@ -592,53 +619,236 @@ class _OrDivider extends StatelessWidget {
   }
 }
 
-// ── Google button (UI only) ───────────────────────────────────────────────────
+// ── Google button ─────────────────────────────────────────────────────────────
 class _GoogleButton extends StatelessWidget {
   final Color bgColor;
   final Color borderColor;
   final Color textColor;
+  final bool isLoading;
+  final VoidCallback? onTap;
 
   const _GoogleButton({
     required this.bgColor,
     required this.borderColor,
     required this.textColor,
+    this.isLoading = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SvgPicture.asset(
-            'assets/images/auth/login/google.svg',
-            width: 22,
-            height: 22,
-          ),
-          const SizedBox(width: 12),
-          Text(
-            'Continue with Google',
-            style: GoogleFonts.dmSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: textColor,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 56,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
+          ],
+        ),
+        child: isLoading
+            ? const Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: _primaryGreen,
+                  ),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SvgPicture.asset(
+                    'assets/images/auth/login/google.svg',
+                    width: 22,
+                    height: 22,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Continue with Google',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: textColor,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+// ── Back button ───────────────────────────────────────────────────────────────
+class _BackButton extends StatelessWidget {
+  final VoidCallback? onTap;
+  final bool isDark;
+
+  const _BackButton({this.onTap, this.isDark = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = isDark;
+    return GestureDetector(
+      onTap: onTap ?? () {
+        if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: dark
+              ? AppColors.darkSurfaceVariant
+              : const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          size: 18,
+          color: dark ? AppColors.darkTextPrimary : _primaryGreen,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Email Confirmation Screen ─────────────────────────────────────────────────
+// Shown after signup when Supabase requires email confirmation.
+class _EmailConfirmationPage extends StatelessWidget {
+  final String email;
+  const _EmailConfirmationPage({required this.email});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+    final textColor = isDark ? AppColors.darkTextPrimary : _primaryGreen;
+    final subtitleColor = isDark
+        ? AppColors.darkTextSecondary
+        : const Color(0xFF41493E).withValues(alpha: 0.7);
+
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // ── Envelope icon ───────────────────────────────────────
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: _primaryGreen.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.mark_email_unread_outlined,
+                  size: 44,
+                  color: _primaryGreen,
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              // ── Title ───────────────────────────────────────────────
+              Text(
+                'Check your email',
+                style: GoogleFonts.dmSerifDisplay(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w400,
+                  color: textColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── Body ────────────────────────────────────────────────
+              Text(
+                'We sent a confirmation link to',
+                style: GoogleFonts.dmSans(
+                  fontSize: 15,
+                  color: subtitleColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 4),
+
+              Text(
+                email,
+                style: GoogleFonts.dmSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                'Click the link in the email to activate your account, then come back and log in.',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  color: subtitleColor,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 36),
+
+              // ── Go to Login button ───────────────────────────────────
+              GestureDetector(
+                onTap: () => context.go(AppRoutes.login),
+                child: Container(
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [_buttonStart, _buttonEnd],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Go to Login',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Resend hint ──────────────────────────────────────────
+              Text(
+                "Didn't receive it? Check your spam folder.",
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  color: subtitleColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

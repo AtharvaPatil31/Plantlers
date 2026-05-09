@@ -23,3 +23,8 @@ class HomeSearchPlants extends HomeEvent {
   @override
   List<Object?> get props => [query];
 }
+
+/// Fired by the UI timer to advance the animated hint to the next keyword.
+class HomeAdvanceSearchHint extends HomeEvent {
+  const HomeAdvanceSearchHint();
+}

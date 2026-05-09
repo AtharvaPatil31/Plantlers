@@ -31,20 +31,34 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # ── Supabase (auth + database — replaces Node.js backend) ───────────────
+  supabase_flutter: ^2.8.4
+
+  # ── UI & Fonts ────────────────────────────────────────────────────────────
   cupertino_icons: ^1.0.8
+  google_fonts: ^8.1.0
+  flutter_svg: ^2.2.4
   video_player: ^2.9.2
+
+  # ── State Management ─────────────────────────────────────────────────────
   flutter_bloc: ^9.1.1
   bloc: ^9.2.0
   equatable: ^2.0.8
+
+  # ── DI & Routing ─────────────────────────────────────────────────────────
   get_it: ^9.2.1
-  dio: ^5.9.2
   go_router: ^17.2.2
+
+  # ── Networking ────────────────────────────────────────────────────────────
+  dio: ^5.9.2
+  connectivity_plus: ^7.1.1
+
+  # ── Functional ───────────────────────────────────────────────────────────
   dartz: ^0.10.1
+
+  # ── Storage ──────────────────────────────────────────────────────────────
   shared_preferences: ^2.5.5
   flutter_secure_storage: ^10.0.0
-  connectivity_plus: ^7.1.1
-  google_fonts: ^8.1.0
-  flutter_svg: ^2.2.4
 
 dev_dependencies:
   flutter_test:
