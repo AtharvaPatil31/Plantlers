@@ -59,9 +59,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: event.name,
       ),
     );
+
     result.fold(
-      (failure) => emit(AuthFailure(message: failure.message)),
-      (user) => emit(AuthAuthenticated(user: user)),
+      (failure) {
+        final isConfirmation =
+            failure.message.contains('confirm your account') ||
+            failure.message.contains('confirm your email');
+
+        if (isConfirmation) {
+          emit(AuthEmailConfirmationRequired(email: event.email));
+        } else {
+          emit(AuthFailure(message: failure.message));
+        }
+        return; // explicit return to satisfy dartz fold type inference
+      },
+      (user) {
+        emit(AuthAuthenticated(user: user));
+        return;
+      },
     );
   }
 

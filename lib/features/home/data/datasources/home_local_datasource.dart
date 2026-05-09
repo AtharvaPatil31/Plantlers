@@ -3,12 +3,32 @@ import '../../domain/entities/plant_entity.dart';
 
 abstract class HomeLocalDataSource {
   List<PlantModel> getPlants();
+  List<String> getSearchSuggestions();
 }
 
 class HomeLocalDataSourceImpl implements HomeLocalDataSource {
   @override
   List<PlantModel> getPlants() => _mockPlants;
+
+  @override
+  List<String> getSearchSuggestions() => _searchSuggestions;
 }
+
+// ── Search hint keywords ──────────────────────────────────────────────────────
+const List<String> _searchSuggestions = [
+  'Monstera Deliciosa',
+  'Snake Plant',
+  'Peace Lily',
+  'Fiddle Leaf Fig',
+  'Pothos Golden',
+  'ZZ Plant',
+  'Spider Plant',
+  'Air Purifier Plants',
+  'Pet Friendly Plants',
+  'Low Light Plants',
+  'Indoor Trees',
+  'Rubber Plant',
+];
 
 // ── Hardcoded plant catalogue (swap with API/Firestore later) ─────────────────
 const List<PlantModel> _mockPlants = [

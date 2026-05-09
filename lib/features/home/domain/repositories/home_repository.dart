@@ -6,4 +6,5 @@ abstract class HomeRepository {
   Future<Either<Failure, List<PlantEntity>>> getPlants();
   Future<Either<Failure, List<PlantEntity>>> filterPlants(PlantCategory category);
   Future<Either<Failure, List<PlantEntity>>> searchPlants(String query);
+  Future<Either<Failure, List<String>>> getSearchSuggestions();
 }

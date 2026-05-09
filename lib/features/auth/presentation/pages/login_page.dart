@@ -257,6 +257,11 @@ class _LoginViewState extends State<_LoginView> {
                         borderColor: googleBtnBorder,
                         textColor: googleTextColor,
                         isLoading: isLoading,
+                        onTap: isLoading
+                            ? null
+                            : () => context
+                                .read<AuthBloc>()
+                                .add(const AuthGoogleSignInRequested()),
                         onTap: isLoading ? null : _onGooglePressed,
                       );
                     },

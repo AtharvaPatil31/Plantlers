@@ -23,6 +23,9 @@ class AuthAuthenticated extends AuthState {
 
 class AuthGoogleAuthenticated extends AuthState {
   final GoogleAuthEntity googleUser;
+
+  const AuthGoogleAuthenticated({required this.googleUser});
+
   const AuthGoogleAuthenticated({required this.googleUser});
   @override
   List<Object?> get props => [googleUser];
@@ -30,6 +33,16 @@ class AuthGoogleAuthenticated extends AuthState {
 
 class AuthUnauthenticated extends AuthState {
   const AuthUnauthenticated();
+}
+
+/// Fired after signup when Supabase requires email confirmation.
+/// The user exists but has no session yet — they must click the email link.
+class AuthEmailConfirmationRequired extends AuthState {
+  final String email;
+  const AuthEmailConfirmationRequired({required this.email});
+
+  @override
+  List<Object?> get props => [email];
 }
 
 class AuthFailure extends AuthState {

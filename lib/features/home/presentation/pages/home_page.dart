@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/extensions.dart';
 import '../../domain/entities/plant_entity.dart';
 import '../bloc/home_bloc.dart';
+import '../../../explore/presentation/pages/explore_page.dart';
 
 // ── Brand green — same in both modes (intentional brand colour) ───────────────
 const _green = Color(0xFF00450D);
@@ -43,7 +45,7 @@ class _HomeViewState extends State<_HomeView> {
         index: _navIndex,
         children: const [
           _HomeTab(),
-          _PlaceholderTab(label: 'Explore', icon: Icons.explore_outlined),
+          ExplorePage(),
           _PlaceholderTab(label: 'Cart', icon: Icons.shopping_cart_outlined),
           _PlaceholderTab(label: 'Profile', icon: Icons.person_outline_rounded),
         ],
@@ -164,22 +166,66 @@ class _HomeTabState extends State<_HomeTab> {
                                 ),
                               ],
                       ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (v) =>
-                            context.read<HomeBloc>().add(HomeSearchPlants(v)),
-                        style: GoogleFonts.dmSans(
-                            fontSize: 14, color: textColor),
-                        decoration: InputDecoration(
-                          hintText: 'Search plants...',
-                          hintStyle: GoogleFonts.dmSans(
-                              fontSize: 14, color: hintColor),
-                          prefixIcon: Icon(Icons.search_rounded,
-                              color: hintColor, size: 20),
-                          border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 14),
-                        ),
+                      child: Stack(
+                        alignment: Alignment.centerLeft,
+                        children: [
+                          // ── Actual text field ───────────────────────────
+                          TextField(
+                            controller: _searchController,
+                            onChanged: (v) => context
+                                .read<HomeBloc>()
+                                .add(HomeSearchPlants(v)),
+                            style: GoogleFonts.dmSans(
+                                fontSize: 14, color: textColor),
+                            decoration: InputDecoration(
+                              hintText: null,
+                              prefixIcon: Icon(Icons.search_rounded,
+                                  color: hintColor, size: 20),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.only(
+                                  left: 48, right: 12, top: 14, bottom: 14),
+                            ),
+                          ),
+                          // ── Animated hint — visible only when field empty
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: _searchController,
+                            builder: (_, value, __) {
+                              if (value.text.isNotEmpty) {
+                                return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 48),
+                                child: BlocBuilder<HomeBloc, HomeState>(
+                                  buildWhen: (p, c) =>
+                                      c is HomeLoaded &&
+                                      (p is! HomeLoaded ||
+                                          (p).hintIndex !=
+                                              (c).hintIndex),
+                                  builder: (context, state) {
+                                    final suggestions = state is HomeLoaded
+                                        ? state.searchSuggestions
+                                        : <String>[];
+                                    final idx = state is HomeLoaded
+                                        ? state.hintIndex
+                                        : 0;
+                                    if (suggestions.isEmpty) {
+                                      return Text(
+                                        'Search plants...',
+                                        style: GoogleFonts.dmSans(
+                                            fontSize: 14, color: hintColor),
+                                      );
+                                    }
+                                    return _AnimatedSearchHint(
+                                      suggestions: suggestions,
+                                      hintIndex: idx,
+                                      hintColor: hintColor,
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -364,6 +410,164 @@ class _HomeTabState extends State<_HomeTab> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Animated search hint (types keywords like Amazon/Flipkart) ────────────────
+class _AnimatedSearchHint extends StatefulWidget {
+  final List<String> suggestions;
+  final int hintIndex;
+  final Color hintColor;
+
+  const _AnimatedSearchHint({
+    required this.suggestions,
+    required this.hintIndex,
+    required this.hintColor,
+  });
+
+  @override
+  State<_AnimatedSearchHint> createState() => _AnimatedSearchHintState();
+}
+
+class _AnimatedSearchHintState extends State<_AnimatedSearchHint> {
+  String _displayed = '';
+  Timer? _typeTimer;
+  Timer? _cycleTimer;
+  int _charIndex = 0;
+  bool _typing = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTyping();
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedSearchHint oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // BLoC advanced to next keyword — restart animation
+    if (oldWidget.hintIndex != widget.hintIndex) {
+      _reset();
+      _startTyping();
+    }
+  }
+
+  void _reset() {
+    _typeTimer?.cancel();
+    _cycleTimer?.cancel();
+    _charIndex = 0;
+    _typing = true;
+    if (mounted) setState(() => _displayed = '');
+  }
+
+  void _startTyping() {
+    final keyword = widget.suggestions.isEmpty
+        ? 'Search plants...'
+        : widget.suggestions[widget.hintIndex % widget.suggestions.length];
+
+    // Type one character every 60ms
+    _typeTimer = Timer.periodic(const Duration(milliseconds: 60), (t) {
+      if (!mounted) { t.cancel(); return; }
+      if (_charIndex < keyword.length) {
+        setState(() {
+          _displayed = keyword.substring(0, _charIndex + 1);
+          _charIndex++;
+        });
+      } else {
+        t.cancel();
+        // Pause 1.8s fully typed, then tell BLoC to advance
+        _cycleTimer = Timer(const Duration(milliseconds: 1800), () {
+          if (!mounted) return;
+          // Erase character by character
+          _eraseText(keyword);
+        });
+      }
+    });
+  }
+
+  void _eraseText(String keyword) {
+    _typeTimer = Timer.periodic(const Duration(milliseconds: 35), (t) {
+      if (!mounted) { t.cancel(); return; }
+      if (_displayed.isNotEmpty) {
+        setState(() => _displayed = _displayed.substring(0, _displayed.length - 1));
+      } else {
+        t.cancel();
+        // Tell BLoC to move to next keyword — BLoC owns the index
+        if (mounted) {
+          context.read<HomeBloc>().add(const HomeAdvanceSearchHint());
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _typeTimer?.cancel();
+    _cycleTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          _displayed,
+          style: GoogleFonts.dmSans(
+            fontSize: 14,
+            color: widget.hintColor,
+          ),
+        ),
+        const SizedBox(width: 2),
+        _BlinkingCursor(color: widget.hintColor),
+      ],
+    );
+  }
+}
+
+// ── Blinking cursor ───────────────────────────────────────────────────────────
+class _BlinkingCursor extends StatefulWidget {
+  final Color color;
+  const _BlinkingCursor({required this.color});
+
+  @override
+  State<_BlinkingCursor> createState() => _BlinkingCursorState();
+}
+
+class _BlinkingCursorState extends State<_BlinkingCursor>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _ctrl,
+      child: Container(
+        width: 1.5,
+        height: 18,
+        decoration: BoxDecoration(
+          color: widget.color,
+          borderRadius: BorderRadius.circular(1),
         ),
       ),
     );

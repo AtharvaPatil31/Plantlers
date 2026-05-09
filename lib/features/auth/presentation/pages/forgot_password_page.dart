@@ -100,7 +100,13 @@ class _SendOtpScreenState extends State<_SendOtpScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 48),
+                const SizedBox(height: 16),
+                // ── Back button ─────────────────────────────────────────
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: _BackButton(),
+                ),
+                const SizedBox(height: 24),
                 Center(
                   child: Container(
                     width: 64,
@@ -281,7 +287,9 @@ class _VerifyOtpScreenState extends State<_VerifyOtpScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 48),
+              const SizedBox(height: 16),
+              const _BackButton(),
+              const SizedBox(height: 24),
               Center(
                 child: Container(
                   width: 64,
@@ -550,7 +558,9 @@ class _ResetPasswordScreenState extends State<_ResetPasswordScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 48),
+                const SizedBox(height: 16),
+                const _BackButton(),
+                const SizedBox(height: 24),
                 // Security tag
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -840,6 +850,40 @@ class _FpButton extends StatelessWidget {
                   fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white,
                 ),
               ),
+      ),
+    );
+  }
+}
+
+// ── Back button — used on all forgot-password sub-screens ────────────────────
+class _BackButton extends StatelessWidget {
+  const _BackButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+    return GestureDetector(
+      onTap: () {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          context.go(AppRoutes.login);
+        }
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isDark
+              ? AppColors.darkSurfaceVariant
+              : const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          size: 18,
+          color: isDark ? AppColors.darkTextPrimary : _green,
+        ),
       ),
     );
   }

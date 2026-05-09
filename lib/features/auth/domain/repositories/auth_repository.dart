@@ -32,6 +32,8 @@ abstract class AuthRepository {
     required String newPassword,
   });
 
+  Future<Either<Failure, GoogleAuthEntity>> signInWithGoogle();
+
   /// Signs in with Google via Firebase — returns Google user data.
   Future<Either<Failure, GoogleAuthEntity>> signInWithGoogle();
 

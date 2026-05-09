@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/storage_service.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
@@ -11,32 +13,36 @@ import '../../features/splash/presentation/pages/splash_page.dart';
 import 'app_routes.dart';
 
 GoRouter createRouter({required StorageService storageService}) {
+  final authNotifier = _SupabaseAuthNotifier();
+
   return GoRouter(
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: kDebugMode,
-    // Redirect only guards protected routes — splash handles its own navigation
+    refreshListenable: authNotifier,
     redirect: (context, state) {
       final location = state.uri.toString();
 
-      // Let splash and onboarding through unconditionally
-      if (location == AppRoutes.splash || location == AppRoutes.onboarding) {
-        return null;
-      }
+      // Splash handles its own navigation — never redirect it
+      if (location == AppRoutes.splash) return null;
 
-      final isLoggedIn = storageService.isLoggedIn;
-      final isOnboardingDone = storageService.isOnboardingDone;
+      // Onboarding: let it through unconditionally
+      if (location == AppRoutes.onboarding) return null;
 
-      // Not onboarded → onboarding
-      if (!isOnboardingDone) return AppRoutes.onboarding;
+      // ── Onboarding guard ────────────────────────────────────────────────
+      if (!storageService.isOnboardingDone) return AppRoutes.onboarding;
+
+      // ── Auth guard — Supabase session is the ONLY source of truth ───────
+      final session = Supabase.instance.client.auth.currentSession;
+      final isLoggedIn = session != null && !_isSessionExpired(session);
 
       final isOnAuthScreen = location == AppRoutes.login ||
           location == AppRoutes.signup ||
           location == AppRoutes.forgotPassword;
 
-      // Onboarded but not logged in → login (unless already on auth screen)
+      // Not logged in and trying to access protected route → login
       if (!isLoggedIn && !isOnAuthScreen) return AppRoutes.login;
 
-      // Logged in but on auth screen → home
+      // Logged in and on auth screen → go home
       if (isLoggedIn && isOnAuthScreen) return AppRoutes.home;
 
       return null;
@@ -74,9 +80,34 @@ GoRouter createRouter({required StorageService storageService}) {
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Text('Route not found: ${state.uri}'),
-      ),
+      body: Center(child: Text('Route not found: ${state.uri}')),
     ),
   );
+}
+
+/// Returns true if the session's access token is expired.
+bool _isSessionExpired(Session session) {
+  final expiresAt = session.expiresAt;
+  if (expiresAt == null) return false;
+  // expiresAt is Unix timestamp in seconds
+  final expiry = DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
+  return DateTime.now().isAfter(expiry);
+}
+
+// ── Notifier: triggers GoRouter redirect on every Supabase auth event ─────────
+class _SupabaseAuthNotifier extends ChangeNotifier {
+  late final StreamSubscription<AuthState> _sub;
+
+  _SupabaseAuthNotifier() {
+    _sub = Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+      // signedIn, signedOut, tokenRefreshed, userUpdated, passwordRecovery
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
 }

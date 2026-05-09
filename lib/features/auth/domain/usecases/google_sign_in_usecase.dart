@@ -6,6 +6,11 @@ import '../repositories/auth_repository.dart';
 
 class GoogleSignInUseCase extends UseCase<GoogleAuthEntity, NoParams> {
   final AuthRepository _repository;
+  GoogleSignInUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, GoogleAuthEntity>> call(NoParams params) =>
+      _repository.signInWithGoogle();
 
   GoogleSignInUseCase(this._repository);
 

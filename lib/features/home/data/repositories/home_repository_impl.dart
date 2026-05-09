@@ -52,4 +52,13 @@ class HomeRepositoryImpl implements HomeRepository {
       return Left(UnknownFailure(message: e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, List<String>>> getSearchSuggestions() async {
+    try {
+      return Right(_localDataSource.getSearchSuggestions());
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
+    }
+  }
 }
