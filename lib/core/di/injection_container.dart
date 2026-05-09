@@ -133,6 +133,9 @@ void _initAuth() {
       loginUseCase:        sl<LoginUseCase>(),
       logoutUseCase:       sl<LogoutUseCase>(),
       registerUseCase:     sl<RegisterUseCase>(),
+      loginUseCase: sl<LoginUseCase>(),
+      logoutUseCase: sl<LogoutUseCase>(),
+      registerUseCase: sl<RegisterUseCase>(),
       googleSignInUseCase: sl<GoogleSignInUseCase>(),
     ),
   );

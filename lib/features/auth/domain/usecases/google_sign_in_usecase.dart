@@ -11,4 +11,11 @@ class GoogleSignInUseCase extends UseCase<GoogleAuthEntity, NoParams> {
   @override
   Future<Either<Failure, GoogleAuthEntity>> call(NoParams params) =>
       _repository.signInWithGoogle();
+
+  GoogleSignInUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, GoogleAuthEntity>> call(NoParams params) {
+    return _repository.signInWithGoogle();
+  }
 }

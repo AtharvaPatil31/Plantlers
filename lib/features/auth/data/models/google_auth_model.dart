@@ -1,6 +1,7 @@
 import '../../domain/entities/google_auth_entity.dart';
 
 /// Data model — maps your Node.js backend's /auth/google response.
+/// Data model — Firebase/Google SDK types stay here, never leak into domain.
 class GoogleAuthModel {
   final String id;
   final String email;
@@ -8,6 +9,7 @@ class GoogleAuthModel {
   final String? photoUrl;
   final String idToken;       // your backend's JWT access token
   final String refreshToken;  // your backend's refresh token
+  final String idToken;
 
   const GoogleAuthModel({
     required this.id,
@@ -29,6 +31,8 @@ class GoogleAuthModel {
         idToken: json['access_token'] as String,
         refreshToken: json['refresh_token'] as String,
       );
+
+  });
 
   GoogleAuthEntity toEntity() => GoogleAuthEntity(
         id: id,

@@ -34,5 +34,9 @@ abstract class AuthRepository {
 
   Future<Either<Failure, GoogleAuthEntity>> signInWithGoogle();
 
+  /// Signs in with Google via Firebase — returns Google user data.
+  Future<Either<Failure, GoogleAuthEntity>> signInWithGoogle();
+
+  /// Signs out from both Google and Firebase.
   Future<Either<Failure, void>> signOutGoogle();
 }

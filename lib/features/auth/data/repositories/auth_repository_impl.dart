@@ -24,6 +24,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
   }) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
     try {
       final model = await _remoteDataSource.login(
         email: email,
@@ -49,6 +50,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     required String name,
   }) async {
+    if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
     try {
       final model = await _remoteDataSource.register(
         email:    email,
@@ -99,6 +101,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (e) {
       return Left(UnknownFailure(message: e.toString()));
     }
+    return const Left(UnknownFailure(message: 'getCurrentUser not implemented yet.'));
   }
 
   // ── Forgot password ───────────────────────────────────────────────────────
@@ -172,6 +175,35 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, GoogleAuthEntity>> signInWithGoogle() async {
+    try {
+      final model = await _remoteDataSource.signInWithGoogle();
+      // Cache user as logged in after Google sign-in
+      await _localDataSource.cacheAuthData(
+        userId: model.id,
+        accessToken: model.idToken,
+        refreshToken: model.idToken, // Firebase handles refresh internally
+      );
+      return Right(model.toEntity());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } on CacheException catch (e) {
+      return Left(CacheFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> signOutGoogle() async {
+    try {
+      await _remoteDataSource.signOutGoogle();
+      await _localDataSource.clearAuthData();
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
     }
   }
 }

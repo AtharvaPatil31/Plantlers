@@ -1,5 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../../../../core/constants/api_constants.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../models/auth_model.dart';
 import '../models/google_auth_model.dart';
@@ -28,6 +32,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   AuthRemoteDataSourceImpl({SupabaseClient? supabase})
       : _supabase = supabase ?? Supabase.instance.client;
+  final Dio _dio;
+  final FirebaseAuth _firebaseAuth;
+
+  AuthRemoteDataSourceImpl({
+    required Dio dio,
+    FirebaseAuth? firebaseAuth,
+  })  : _dio = dio,
+        _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
+
+  // ── Email / Password ──────────────────────────────────────────────────────
 
   // ── Email / Password Login ────────────────────────────────────────────────
   @override
@@ -128,6 +142,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       await _supabase.auth.resetPasswordForEmail(email.trim());
     } on AuthException catch (e) {
       throw ServerException(message: e.message);
+      await _dio.post(ApiConstants.forgotPassword, data: {'email': email});
+    } on DioException catch (e) {
+      throw ServerException(
+        message: e.response?.data?['message'] as String? ?? e.message ?? 'Failed to send OTP.',
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 
@@ -142,6 +162,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         email: email.trim(),
         token: otp,
         type: OtpType.recovery,
+      await _dio.post(ApiConstants.verifyOtp, data: {'email': email, 'otp': otp});
+    } on DioException catch (e) {
+      throw ServerException(
+        message: e.response?.data?['message'] as String? ?? e.message ?? 'OTP verification failed.',
+        statusCode: e.response?.statusCode,
       );
     } on AuthException catch (e) {
       throw ServerException(message: _mapAuthError(e.message));
@@ -247,5 +272,70 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return 'Password must be at least 6 characters.';
     }
     return message;
+  }
+
+  // ── Google Sign-In ────────────────────────────────────────────────────────
+
+  @override
+  Future<GoogleAuthModel> signInWithGoogle() async {
+    try {
+      // Triggers the native Android account picker (no browser redirect)
+      final googleUser = await GoogleSignIn.instance.authenticate();
+
+      // googleUser.authentication holds the idToken (OpenID Connect)
+      final googleAuth = googleUser.authentication;
+      final idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        throw const ServerException(message: 'Failed to get Google ID token.');
+      }
+
+      // Sign in to Firebase using the idToken
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
+      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+      final user = userCredential.user;
+
+      if (user == null) {
+        throw const ServerException(message: 'Firebase sign-in returned no user.');
+      }
+
+      final firebaseIdToken = await user.getIdToken();
+
+      return GoogleAuthModel(
+        id: user.uid,
+        email: user.email ?? googleUser.email,
+        displayName: user.displayName ?? googleUser.displayName,
+        photoUrl: user.photoURL ?? googleUser.photoUrl,
+        idToken: firebaseIdToken ?? idToken,
+      );
+    } on ServerException {
+      rethrow;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'canceled' || e.code == 'sign_in_canceled') {
+        throw const ServerException(message: 'Google sign-in was cancelled.');
+      }
+      throw ServerException(
+        message: e.message ?? 'Firebase authentication failed.',
+        statusCode: int.tryParse(e.code),
+      );
+    } catch (e) {
+      final msg = e.toString();
+      if (msg.contains('canceled') || msg.contains('cancelled')) {
+        throw const ServerException(message: 'Google sign-in was cancelled.');
+      }
+      throw ServerException(message: 'Google sign-in failed: $e');
+    }
+  }
+
+  @override
+  Future<void> signOutGoogle() async {
+    try {
+      await Future.wait([
+        GoogleSignIn.instance.signOut(),
+        _firebaseAuth.signOut(),
+      ]);
+    } catch (e) {
+      throw ServerException(message: 'Sign-out failed: $e');
+    }
   }
 }

@@ -57,6 +57,10 @@ class _LoginViewState extends State<_LoginView> {
     }
   }
 
+  void _onGooglePressed() {
+    context.read<AuthBloc>().add(const AuthGoogleSignInRequested());
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
@@ -258,6 +262,7 @@ class _LoginViewState extends State<_LoginView> {
                             : () => context
                                 .read<AuthBloc>()
                                 .add(const AuthGoogleSignInRequested()),
+                        onTap: isLoading ? null : _onGooglePressed,
                       );
                     },
                   ),
