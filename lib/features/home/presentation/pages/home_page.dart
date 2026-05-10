@@ -8,6 +8,9 @@ import '../../../../core/utils/extensions.dart';
 import '../../domain/entities/plant_entity.dart';
 import '../bloc/home_bloc.dart';
 import '../../../explore/presentation/pages/explore_page.dart';
+import '../../../cart/presentation/pages/cart_page.dart';
+import '../../../cart/presentation/bloc/cart_bloc.dart';
+import '../../../plant_detail/presentation/pages/plant_detail_page.dart';
 
 // ── Brand green — same in both modes (intentional brand colour) ───────────────
 const _green = Color(0xFF00450D);
@@ -18,8 +21,11 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<HomeBloc>()..add(const HomeLoadPlants()),
-      child: const _HomeView(),
+      create: (_) => sl<CartBloc>()..add(const CartLoadRequested()),
+      child: BlocProvider(
+        create: (_) => sl<HomeBloc>()..add(const HomeLoadPlants()),
+        child: const _HomeView(),
+      ),
     );
   }
 }
@@ -33,6 +39,28 @@ class _HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<_HomeView> {
   int _navIndex = 0;
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _navIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onNavTap(int index) {
+    setState(() => _navIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,20 +69,43 @@ class _HomeViewState extends State<_HomeView> {
 
     return Scaffold(
       backgroundColor: bg,
-      body: IndexedStack(
-        index: _navIndex,
-        children: const [
-          _HomeTab(),
-          ExplorePage(),
-          _PlaceholderTab(label: 'Cart', icon: Icons.shopping_cart_outlined),
-          _PlaceholderTab(label: 'Profile', icon: Icons.person_outline_rounded),
+      body: PageView(
+        controller: _pageController,
+        physics: const ClampingScrollPhysics(),
+        onPageChanged: (i) => setState(() => _navIndex = i),
+        children: [
+          const _KeepAlivePage(child: _HomeTab()),
+          const _KeepAlivePage(child: ExplorePage()),
+          _KeepAlivePage(child: CartPage(onBrowsePlants: () => _onNavTap(0))),
+          const _KeepAlivePage(child: _PlaceholderTab(label: 'Profile', icon: Icons.person_outline_rounded)),
         ],
       ),
       bottomNavigationBar: _BottomNav(
         currentIndex: _navIndex,
-        onTap: (i) => setState(() => _navIndex = i),
+        onTap: _onNavTap,
       ),
     );
+  }
+}
+
+// ── Keep-alive wrapper — prevents PageView from destroying tab state ──────────
+class _KeepAlivePage extends StatefulWidget {
+  final Widget child;
+  const _KeepAlivePage({required this.child});
+
+  @override
+  State<_KeepAlivePage> createState() => _KeepAlivePageState();
+}
+
+class _KeepAlivePageState extends State<_KeepAlivePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // required by AutomaticKeepAliveClientMixin
+    return widget.child;
   }
 }
 
@@ -228,17 +279,6 @@ class _HomeTabState extends State<_HomeTab> {
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: _green,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.tune_rounded,
-                        color: Colors.white, size: 20),
                   ),
                 ],
               ),
@@ -639,12 +679,14 @@ class _PlantCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final imagePlaceholderBg =
         isDark ? AppColors.darkSurfaceVariant : const Color(0xFFEEEDE9);
-    final wishlistBg = isDark
-        ? Colors.black.withValues(alpha: 0.5)
-        : Colors.white.withValues(alpha: 0.9);
-    final wishlistIcon = isDark ? AppColors.primaryLight : _green;
 
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PlantDetailPage(plant: plant),
+        ),
+      ),
+      child: Container(
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
@@ -697,21 +739,6 @@ class _PlantCard extends StatelessWidget {
                           size: 40),
                     ),
                   ),
-                  // Wishlist
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: wishlistBg,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.favorite_border_rounded,
-                          size: 16, color: wishlistIcon),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -745,7 +772,7 @@ class _PlantCard extends StatelessWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? AppColors.primaryLight : _green,
+                        color: isDark ? Colors.white : _green,
                       ),
                     ),
                   ],
@@ -761,35 +788,133 @@ class _PlantCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  height: 30,
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _green,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                // ── Cart button — reactive via CartBloc ───────────────
+                BlocBuilder<CartBloc, CartState>(
+                  buildWhen: (prev, curr) {
+                    // Only rebuild when cart items change
+                    if (prev is CartLoaded && curr is CartLoaded) {
+                      final prevQty = prev.cart.items
+                          .where((i) => i.id == plant.id)
+                          .fold(0, (s, i) => s + i.quantity);
+                      final currQty = curr.cart.items
+                          .where((i) => i.id == plant.id)
+                          .fold(0, (s, i) => s + i.quantity);
+                      return prevQty != currQty;
+                    }
+                    return curr is CartLoaded || curr is CartInitial;
+                  },
+                  builder: (context, state) {
+                    final qty = state is CartLoaded
+                        ? state.cart.items
+                            .where((i) => i.id == plant.id)
+                            .fold(0, (s, i) => s + i.quantity)
+                        : 0;
+
+                    if (qty == 0) {
+                      // ── Add to Cart button ──────────────────────────
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 30,
+                        child: ElevatedButton(
+                          onPressed: () => context
+                              .read<CartBloc>()
+                              .add(CartItemAdded(plant: plant)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _green,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Add to Cart',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // ── Quantity stepper ────────────────────────────────
+                    return SizedBox(
+                      height: 30,
+                      child: Row(
+                        children: [
+                          // Minus
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => context.read<CartBloc>().add(
+                                    CartQuantityUpdated(
+                                      cartItemId: plant.id,
+                                      quantity:   qty - 1,
+                                    ),
+                                  ),
+                              child: Container(
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppColors.darkSurfaceVariant
+                                      : const Color(0xFFE8F5E9),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.remove_rounded,
+                                  size: 16,
+                                  color: isDark ? Colors.white : _green,
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Quantity
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(
+                              '$qty',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: isDark
+                                    ? AppColors.darkTextPrimary
+                                    : const Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ),
+                          // Plus
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => context.read<CartBloc>().add(
+                                    CartItemAdded(plant: plant),
+                                  ),
+                              child: Container(
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: _green,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.add_rounded,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    child: Text(
-                      'Add to Cart',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
         ],
       ),
-    );
+    ), // Container
+    ); // GestureDetector
   }
 }
 

@@ -8,6 +8,7 @@ import '../../../../core/utils/extensions.dart';
 import '../../../home/domain/entities/plant_entity.dart';
 import '../../domain/entities/explore_section_entity.dart';
 import '../bloc/explore_bloc.dart';
+import '../../../plant_detail/presentation/pages/plant_detail_page.dart';
 
 const _green      = Color(0xFF00450D);
 const _greenLight = Color(0xFF1B5E20);
@@ -692,8 +693,12 @@ class _TrendingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cardBg = isDark ? AppColors.darkSurface : Colors.white;
 
-    return Container(
-      width: 160,
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => PlantDetailPage(plant: plant)),
+      ),
+      child: Container(
+        width: 160,
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
@@ -783,7 +788,7 @@ class _TrendingCard extends StatelessWidget {
                   style: GoogleFonts.dmSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: _green,
+                    color: isDark ? Colors.white : _green,
                   ),
                 ),
               ],
@@ -791,7 +796,8 @@ class _TrendingCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ), // Container
+    ); // GestureDetector
   }
 }
 
@@ -805,7 +811,11 @@ class _NewArrivalTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cardBg = isDark ? AppColors.darkSurface : Colors.white;
 
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => PlantDetailPage(plant: plant)),
+      ),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -885,28 +895,15 @@ class _NewArrivalTile extends StatelessWidget {
                 style: GoogleFonts.dmSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: _green,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: _green,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  color: Colors.white,
-                  size: 18,
+                  color: isDark ? Colors.white : _green,
                 ),
               ),
             ],
           ),
         ],
       ),
-    );
+    ), // Container
+    ); // GestureDetector
   }
 }
 
