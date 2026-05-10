@@ -15,19 +15,21 @@ const _greenLight = Color(0xFF1B5E20);
 const _greenMuted = Color(0xFFE8F5E9);
 
 class ExplorePage extends StatelessWidget {
-  const ExplorePage({super.key});
+  final VoidCallback? onGoToCart;
+  const ExplorePage({super.key, this.onGoToCart});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<ExploreBloc>()..add(const ExploreLoadRequested()),
-      child: const _ExploreView(),
+      child: _ExploreView(onGoToCart: onGoToCart),
     );
   }
 }
 
 class _ExploreView extends StatefulWidget {
-  const _ExploreView();
+  final VoidCallback? onGoToCart;
+  const _ExploreView({this.onGoToCart});
 
   @override
   State<_ExploreView> createState() => _ExploreViewState();
@@ -66,6 +68,7 @@ class _ExploreViewState extends State<_ExploreView> {
             return _ExploreContent(
               state:            state,
               searchController: _searchController,
+              onGoToCart:       widget.onGoToCart,
             );
           }
           return const SizedBox.shrink();
@@ -77,12 +80,14 @@ class _ExploreViewState extends State<_ExploreView> {
 
 // ── Main scrollable content ───────────────────────────────────────────────────
 class _ExploreContent extends StatelessWidget {
-  final ExploreLoaded      state;
+  final ExploreLoaded         state;
   final TextEditingController searchController;
+  final VoidCallback?         onGoToCart;
 
   const _ExploreContent({
     required this.state,
     required this.searchController,
+    this.onGoToCart,
   });
 
   @override
@@ -202,8 +207,9 @@ class _ExploreContent extends StatelessWidget {
                   : SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (ctx, i) => _NewArrivalTile(
-                          plant:  data.filteredPlants[i],
-                          isDark: isDark,
+                          plant:      data.filteredPlants[i],
+                          isDark:     isDark,
+                          onGoToCart: onGoToCart,
                         ),
                         childCount: data.filteredPlants.length,
                       ),
@@ -227,7 +233,7 @@ class _ExploreContent extends StatelessWidget {
               child: _SectionHeader(title: 'Trending Now', isDark: isDark),
             ),
             SliverToBoxAdapter(
-              child: _TrendingRow(plants: data.trendingPlants, isDark: isDark),
+              child: _TrendingRow(plants: data.trendingPlants, isDark: isDark, onGoToCart: onGoToCart),
             ),
 
             // ── New Arrivals ──────────────────────────────────────────────
@@ -239,8 +245,9 @@ class _ExploreContent extends StatelessWidget {
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (ctx, i) => _NewArrivalTile(
-                    plant:  data.newArrivals[i],
-                    isDark: isDark,
+                    plant:      data.newArrivals[i],
+                    isDark:     isDark,
+                    onGoToCart: onGoToCart,
                   ),
                   childCount: data.newArrivals.length,
                 ),
@@ -667,7 +674,8 @@ class _RoomCard extends StatelessWidget {
 class _TrendingRow extends StatelessWidget {
   final List<PlantEntity> plants;
   final bool              isDark;
-  const _TrendingRow({required this.plants, required this.isDark});
+  final VoidCallback?     onGoToCart;
+  const _TrendingRow({required this.plants, required this.isDark, this.onGoToCart});
 
   @override
   Widget build(BuildContext context) {
@@ -678,16 +686,17 @@ class _TrendingRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: plants.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (ctx, i) => _TrendingCard(plant: plants[i], isDark: isDark),
+        itemBuilder: (ctx, i) => _TrendingCard(plant: plants[i], isDark: isDark, onGoToCart: onGoToCart),
       ),
     );
   }
 }
 
 class _TrendingCard extends StatelessWidget {
-  final PlantEntity plant;
-  final bool        isDark;
-  const _TrendingCard({required this.plant, required this.isDark});
+  final PlantEntity   plant;
+  final bool          isDark;
+  final VoidCallback? onGoToCart;
+  const _TrendingCard({required this.plant, required this.isDark, this.onGoToCart});
 
   @override
   Widget build(BuildContext context) {
@@ -695,7 +704,7 @@ class _TrendingCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => PlantDetailPage(plant: plant)),
+        MaterialPageRoute(builder: (_) => PlantDetailPage(plant: plant, onGoToCart: onGoToCart)),
       ),
       child: Container(
         width: 160,
@@ -803,9 +812,10 @@ class _TrendingCard extends StatelessWidget {
 
 // ── New arrival tile ──────────────────────────────────────────────────────────
 class _NewArrivalTile extends StatelessWidget {
-  final PlantEntity plant;
-  final bool        isDark;
-  const _NewArrivalTile({required this.plant, required this.isDark});
+  final PlantEntity   plant;
+  final bool          isDark;
+  final VoidCallback? onGoToCart;
+  const _NewArrivalTile({required this.plant, required this.isDark, this.onGoToCart});
 
   @override
   Widget build(BuildContext context) {
@@ -813,7 +823,7 @@ class _NewArrivalTile extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => PlantDetailPage(plant: plant)),
+        MaterialPageRoute(builder: (_) => PlantDetailPage(plant: plant, onGoToCart: onGoToCart)),
       ),
       child: Container(
       margin: const EdgeInsets.only(bottom: 12),

@@ -74,8 +74,8 @@ class _HomeViewState extends State<_HomeView> {
         physics: const ClampingScrollPhysics(),
         onPageChanged: (i) => setState(() => _navIndex = i),
         children: [
-          const _KeepAlivePage(child: _HomeTab()),
-          const _KeepAlivePage(child: ExplorePage()),
+          _KeepAlivePage(child: _HomeTab(onGoToCart: () => _onNavTap(2))),
+          _KeepAlivePage(child: ExplorePage(onGoToCart: () => _onNavTap(2))),
           _KeepAlivePage(child: CartPage(onBrowsePlants: () => _onNavTap(0))),
           const _KeepAlivePage(child: _PlaceholderTab(label: 'Profile', icon: Icons.person_outline_rounded)),
         ],
@@ -111,7 +111,8 @@ class _KeepAlivePageState extends State<_KeepAlivePage>
 
 // ── Home tab ──────────────────────────────────────────────────────────────────
 class _HomeTab extends StatefulWidget {
-  const _HomeTab();
+  final VoidCallback? onGoToCart;
+  const _HomeTab({this.onGoToCart});
 
   @override
   State<_HomeTab> createState() => _HomeTabState();
@@ -442,6 +443,7 @@ class _HomeTabState extends State<_HomeTab> {
                         textColor: textColor,
                         subColor: subColor,
                         isDark: isDark,
+                        onGoToCart: widget.onGoToCart,
                       ),
                     );
                   }
@@ -661,11 +663,12 @@ class _CategoryChip extends StatelessWidget {
 
 // ── Plant card ────────────────────────────────────────────────────────────────
 class _PlantCard extends StatelessWidget {
-  final PlantEntity plant;
-  final Color cardBg;
-  final Color textColor;
-  final Color subColor;
-  final bool isDark;
+  final PlantEntity   plant;
+  final Color         cardBg;
+  final Color         textColor;
+  final Color         subColor;
+  final bool          isDark;
+  final VoidCallback? onGoToCart;
 
   const _PlantCard({
     required this.plant,
@@ -673,6 +676,7 @@ class _PlantCard extends StatelessWidget {
     required this.textColor,
     required this.subColor,
     required this.isDark,
+    this.onGoToCart,
   });
 
   @override
@@ -683,7 +687,7 @@ class _PlantCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => PlantDetailPage(plant: plant),
+          builder: (_) => PlantDetailPage(plant: plant, onGoToCart: onGoToCart),
         ),
       ),
       child: Container(
