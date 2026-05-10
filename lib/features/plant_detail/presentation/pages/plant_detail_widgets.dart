@@ -474,12 +474,14 @@ class _DeliveryInfo extends StatelessWidget {
 
 // ── Add to cart sticky bar ────────────────────────────────────────────────────
 class _AddToCartBar extends StatelessWidget {
-  final PlantEntity plant;
-  final bool        isDark;
+  final PlantEntity   plant;
+  final bool          isDark;
+  final VoidCallback? onGoToCart;
 
   const _AddToCartBar({
     required this.plant,
     required this.isDark,
+    this.onGoToCart,
   });
 
   @override
@@ -501,40 +503,181 @@ class _AddToCartBar extends StatelessWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: GestureDetector(
-            onTap: () {
-              context.read<CartBloc>().add(
-                    CartItemAdded(plant: plant),
-                  );
+          child: BlocBuilder<CartBloc, CartState>(
+            buildWhen: (prev, curr) {
+              if (prev is CartLoaded && curr is CartLoaded) {
+                final prevQty = prev.cart.items
+                    .where((i) => i.id == plant.id)
+                    .fold(0, (s, i) => s + i.quantity);
+                final currQty = curr.cart.items
+                    .where((i) => i.id == plant.id)
+                    .fold(0, (s, i) => s + i.quantity);
+                return prevQty != currQty;
+              }
+              return curr is CartLoaded || curr is CartInitial;
             },
-            child: Container(
-              height: 52,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [_green, _greenLight],
-                ),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+            builder: (context, state) {
+              final qty = state is CartLoaded
+                  ? state.cart.items
+                      .where((i) => i.id == plant.id)
+                      .fold(0, (s, i) => s + i.quantity)
+                  : 0;
+
+              if (qty == 0) {
+                // ── Add to Cart ─────────────────────────────────────────
+                return GestureDetector(
+                  onTap: () => context
+                      .read<CartBloc>()
+                      .add(CartItemAdded(plant: plant)),
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [_green, _greenLight],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.shopping_cart_outlined,
+                            color: Colors.white, size: 20),
+                        const SizedBox(width: 10),
+                        Text(
+                          'ADD TO CART',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // ── Qty stepper + Go to Cart ────────────────────────────
+              return Row(
                 children: [
-                  const Icon(Icons.shopping_cart_outlined,
-                      color: Colors.white, size: 20),
+                  // Minus
+                  GestureDetector(
+                    onTap: () => context.read<CartBloc>().add(
+                          CartQuantityUpdated(
+                            cartItemId: plant.id,
+                            quantity:   qty - 1,
+                          ),
+                        ),
+                    child: Container(
+                      width: 44,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.darkSurfaceVariant
+                            : _greenMuted,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.darkDivider
+                              : _green.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.remove_rounded,
+                        size: 20,
+                        color: isDark ? Colors.white : _green,
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 10),
-                  Text(
-                    'ADD TO CART',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: 0.8,
+
+                  // Qty count
+                  Container(
+                    width: 44,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.darkSurfaceVariant
+                          : _greenMuted,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$qty',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : _green,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Plus
+                  GestureDetector(
+                    onTap: () => context.read<CartBloc>().add(
+                          CartItemAdded(plant: plant),
+                        ),
+                    child: Container(
+                      width: 44,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: _green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.add_rounded,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Go to Cart
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        onGoToCart?.call();
+                      },
+                      child: Container(
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [_green, _greenLight],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.shopping_cart_rounded,
+                                color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              'GO TO CART',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),

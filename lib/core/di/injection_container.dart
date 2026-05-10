@@ -229,7 +229,7 @@ void _initCart() {
   sl.registerLazySingleton(() => ClearCartUseCase(sl<CartRepository>()));
   sl.registerLazySingleton(
       () => GetCartSuggestionsUseCase(sl<CartRepository>()));
-  sl.registerFactory(
+  sl.registerLazySingleton(
     () => CartBloc(
       getCart:        sl<GetCartUseCase>(),
       addItem:        sl<AddToCartUseCase>(),

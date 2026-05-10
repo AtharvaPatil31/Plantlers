@@ -166,14 +166,6 @@ class _CartContentState extends State<_CartContent> {
                           ),
                         ),
 
-                        // Add more plants
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                            child: _AddMoreButton(isDark: isDark),
-                          ),
-                        ),
-
                         // Free delivery badge
                         SliverToBoxAdapter(
                           child: Padding(
@@ -209,7 +201,7 @@ class _CartContentState extends State<_CartContent> {
                                 'You may also like',
                                 style: GoogleFonts.dmSerifDisplay(
                                   fontSize: 22,
-                                  color: textColor,
+                                  color: isDark ? Colors.white : _green,
                                   height: 1.1,
                                 ),
                               ),

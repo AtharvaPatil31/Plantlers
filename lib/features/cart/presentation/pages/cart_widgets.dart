@@ -471,47 +471,6 @@ class _QtyButton extends StatelessWidget {
   }
 }
 
-// ── Add more plants button ────────────────────────────────────────────────────
-class _AddMoreButton extends StatelessWidget {
-  final bool isDark;
-  const _AddMoreButton({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {}, // navigate to explore/home
-      child: Container(
-        width: double.infinity,
-        height: 48,
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark ? AppColors.darkDivider : AppColors.divider,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_rounded,
-                size: 18,
-                color: isDark ? AppColors.darkTextSecondary : _green),
-            const SizedBox(width: 6),
-            Text(
-              'Add more plants',
-              style: GoogleFonts.dmSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.darkTextSecondary : _green,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ── Delivery badge ────────────────────────────────────────────────────────────
 class _DeliveryBadge extends StatelessWidget {
   final bool isFree;
@@ -829,18 +788,104 @@ class _SuggestionCard extends StatelessWidget {
                         style: GoogleFonts.dmSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: _green,
+                          color: isDark ? Colors.white : _green,
                         ),
                       ),
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: _green,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Icon(Icons.add_rounded,
-                            color: Colors.white, size: 14),
+                      // ── Reactive add / stepper ──────────────────────
+                      BlocBuilder<CartBloc, CartState>(
+                        buildWhen: (prev, curr) {
+                          if (prev is CartLoaded && curr is CartLoaded) {
+                            final pq = prev.cart.items
+                                .where((i) => i.id == plant.id)
+                                .fold(0, (s, i) => s + i.quantity);
+                            final cq = curr.cart.items
+                                .where((i) => i.id == plant.id)
+                                .fold(0, (s, i) => s + i.quantity);
+                            return pq != cq;
+                          }
+                          return curr is CartLoaded || curr is CartInitial;
+                        },
+                        builder: (context, state) {
+                          final qty = state is CartLoaded
+                              ? state.cart.items
+                                  .where((i) => i.id == plant.id)
+                                  .fold(0, (s, i) => s + i.quantity)
+                              : 0;
+
+                          if (qty == 0) {
+                            // + button — add to cart
+                            return GestureDetector(
+                              onTap: () => context
+                                  .read<CartBloc>()
+                                  .add(CartItemAdded(plant: plant)),
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: _green,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(Icons.add_rounded,
+                                    color: Colors.white, size: 14),
+                              ),
+                            );
+                          }
+
+                          // Mini stepper — − qty +
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: () => context.read<CartBloc>().add(
+                                      CartQuantityUpdated(
+                                        cartItemId: plant.id,
+                                        quantity:   qty - 1,
+                                      ),
+                                    ),
+                                child: Container(
+                                  width: 22,
+                                  height: 22,
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? AppColors.darkSurfaceVariant
+                                        : _greenMuted,
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  child: Icon(Icons.remove_rounded,
+                                      size: 13,
+                                      color: isDark ? Colors.white : _green),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 5),
+                                child: Text(
+                                  '$qty',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white : _green,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => context.read<CartBloc>().add(
+                                      CartItemAdded(plant: plant),
+                                    ),
+                                child: Container(
+                                  width: 22,
+                                  height: 22,
+                                  decoration: BoxDecoration(
+                                    color: _green,
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  child: const Icon(Icons.add_rounded,
+                                      size: 13, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),

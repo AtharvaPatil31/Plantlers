@@ -15,21 +15,26 @@ const _greenLight = Color(0xFF1B5E20);
 const _greenMuted = Color(0xFFE8F5E9);
 
 class PlantDetailPage extends StatelessWidget {
-  final PlantEntity plant;
-  const PlantDetailPage({super.key, required this.plant});
+  final PlantEntity   plant;
+  final VoidCallback? onGoToCart;
+
+  const PlantDetailPage({super.key, required this.plant, this.onGoToCart});
 
   @override
   Widget build(BuildContext context) {
+    // CartBloc is a LazySingleton — sl<CartBloc>() always returns the same
+    // instance regardless of which route pushed this page.
     return BlocProvider.value(
       value: sl<CartBloc>(),
-      child: _PlantDetailView(plant: plant),
+      child: _PlantDetailView(plant: plant, onGoToCart: onGoToCart),
     );
   }
 }
 
 class _PlantDetailView extends StatelessWidget {
-  final PlantEntity plant;
-  const _PlantDetailView({required this.plant});
+  final PlantEntity   plant;
+  final VoidCallback? onGoToCart;
+  const _PlantDetailView({required this.plant, this.onGoToCart});
 
   @override
   Widget build(BuildContext context) {
@@ -38,21 +43,10 @@ class _PlantDetailView extends StatelessWidget {
     final textColor = isDark ? AppColors.darkTextPrimary : const Color(0xFF1A1A1A);
     final subColor  = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
 
-    return BlocListener<CartBloc, CartState>(
-      listener: (context, state) {
-        if (state is CartLoaded) {
-          context.showSnackBar('${plant.name} added to cart 🌿');
-        }
-        if (state is CartError) {
-          context.showSnackBar(state.message, isError: true);
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: bg,
         extendBodyBehindAppBar: true,
-        appBar: _DetailAppBar(
-          isDark: isDark,
-        ),
+        appBar: _DetailAppBar(isDark: isDark),
         body: CustomScrollView(
           slivers: [
             // ── Hero image ──────────────────────────────────────────────
@@ -107,10 +101,10 @@ class _PlantDetailView extends StatelessWidget {
 
         // ── Sticky bottom bar ────────────────────────────────────────────
         bottomNavigationBar: _AddToCartBar(
-          plant:  plant,
-          isDark: isDark,
+          plant:      plant,
+          isDark:     isDark,
+          onGoToCart: onGoToCart,
         ),
-      ),
     );
   }
 }
