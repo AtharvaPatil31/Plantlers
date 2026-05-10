@@ -47,6 +47,12 @@ import '../../features/explore/domain/usecases/get_explore_data_usecase.dart';
 import '../../features/explore/domain/usecases/filter_explore_usecase.dart';
 import '../../features/explore/presentation/bloc/explore_bloc.dart';
 
+import '../../features/cart/data/datasources/cart_local_datasource.dart';
+import '../../features/cart/data/repositories/cart_repository_impl.dart';
+import '../../features/cart/domain/repositories/cart_repository.dart';
+import '../../features/cart/domain/usecases/cart_usecases.dart';
+import '../../features/cart/presentation/bloc/cart_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> initDependencies() async {
@@ -74,6 +80,7 @@ Future<void> initDependencies() async {
   _initAuth();
   _initHome();
   _initExplore();
+  _initCart();
 }
 
 void _initSplash() {
@@ -199,6 +206,39 @@ void _initExplore() {
       searchPlants:     sl<SearchExploreUseCase>(),
       getByLevel:       sl<GetPlantsByCareLevelUseCase>(),
       getByRoom:        sl<GetPlantsByRoomUseCase>(),
+    ),
+  );
+}
+
+void _initCart() {
+  sl.registerLazySingleton<CartLocalDataSource>(
+    () => CartLocalDataSourceImpl(),
+  );
+  sl.registerLazySingleton<CartRepository>(
+    () => CartRepositoryImpl(
+      cartDataSource: sl<CartLocalDataSource>(),
+      homeDataSource: sl<HomeLocalDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton(() => GetCartUseCase(sl<CartRepository>()));
+  sl.registerLazySingleton(() => AddToCartUseCase(sl<CartRepository>()));
+  sl.registerLazySingleton(() => RemoveFromCartUseCase(sl<CartRepository>()));
+  sl.registerLazySingleton(() => UpdateCartQtyUseCase(sl<CartRepository>()));
+  sl.registerLazySingleton(() => ApplyPromoUseCase(sl<CartRepository>()));
+  sl.registerLazySingleton(() => RemovePromoUseCase(sl<CartRepository>()));
+  sl.registerLazySingleton(() => ClearCartUseCase(sl<CartRepository>()));
+  sl.registerLazySingleton(
+      () => GetCartSuggestionsUseCase(sl<CartRepository>()));
+  sl.registerFactory(
+    () => CartBloc(
+      getCart:        sl<GetCartUseCase>(),
+      addItem:        sl<AddToCartUseCase>(),
+      removeItem:     sl<RemoveFromCartUseCase>(),
+      updateQty:      sl<UpdateCartQtyUseCase>(),
+      applyPromo:     sl<ApplyPromoUseCase>(),
+      removePromo:    sl<RemovePromoUseCase>(),
+      clearCart:      sl<ClearCartUseCase>(),
+      getSuggestions: sl<GetCartSuggestionsUseCase>(),
     ),
   );
 }
