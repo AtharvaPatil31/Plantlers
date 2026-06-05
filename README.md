@@ -4,7 +4,6 @@
 
 Plantlers connects plant lovers with freshly nurtured plants, delivered with care. From small desk succulents to statement fiddle leaf figs, Plantlers makes it effortless to bring nature into your space.
 
----
 
 ## 📱 Screenshots
 
@@ -12,7 +11,7 @@ Plantlers connects plant lovers with freshly nurtured plants, delivered with car
   <img src="assets/Figma%20Ss.png" alt="Plantlers App Showcase" width="100%">
 </p>
 ---
-## ✨ Features
+# ✨ Features
 
 - 🌱 **Browse & Shop** — Curated plant collections for every space
 - 📦 **Same-day Delivery** — Freshly packed and delivered to your door
