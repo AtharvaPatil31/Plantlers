@@ -8,37 +8,9 @@ Plantlers connects plant lovers with freshly nurtured plants, delivered with car
 
 ## 📱 Screenshots
 
-<div align="center">
-
-### 🪴 Brand
-<table>
-  <tr>
-    <td align="center"><img src="assets/ss/splash_screen/01_app_logo.jpeg" width="160"/><br/><sub><b>App Icon</b></sub></td>
-    <td align="center"><img src="assets/ss/splash_screen/02_screen.jpeg" width="160"/><br/><sub><b>Splash Screen</b></sub></td>
-  </tr>
-</table>
-
----
-
-### 🌿 Onboarding
-<img src="assets/ss/onboarding/merge.png" width="75%"/>
-
----
-
-### 🔐 Authentication
-<table>
-  <tr>
-    <td align="center"><img src="assets/ss/auth/login/04_login.jpeg" width="160"/><br/><sub><b>Login</b></sub></td>
-    <td align="center"><img src="assets/ss/auth/sign_up/04_sign_up_01.jpeg.jpeg" width="160"/><br/><sub><b>Sign Up</b></sub></td>
-    <td align="center"><img src="assets/ss/auth/sign_up/04_sign_up_02.jpeg" width="160"/><br/><sub><b>Sign Up (scrolled)</b></sub></td>
-    <td align="center"><img src="assets/ss/auth/forgot password/04_email_for_otp.jpeg" width="160"/><br/><sub><b>Forgot Password</b></sub></td>
-  </tr>
-</table>
-
----
-
-</div>
-
+<p align="center">
+  <img src="assets/Figma%20Ss.png" alt="Plantlers App Showcase" width="100%">
+</p>
 ## ✨ Features
 
 - 🌱 **Browse & Shop** — Curated plant collections for every space
