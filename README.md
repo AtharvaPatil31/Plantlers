@@ -55,11 +55,13 @@ Plantlers connects plant lovers with freshly nurtured plants, delivered with car
 
 ## 🎥 Demo Video
 
-<p align="center">
-  <a href="https://github.com/AtharvaPatil31/Plantlers/releases/download/v1.0.0/PLANTLERS.SCREEN.RECORDING.mp4">
-    <img src="https://img.shields.io/badge/▶️%20Watch%20Plantlers%20Demo-2ea44f?style=for-the-badge" />
-  </a>
-</p>
+
+
+https://github.com/user-attachments/assets/42efc90d-8868-4b97-af61-8d2985ec4bfe
+
+
+
+
 
 ## 🏗️ Architecture
 
