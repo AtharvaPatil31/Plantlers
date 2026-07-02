@@ -1,4 +1,4 @@
-# 🌿 Plantlers
+# 🌿 Plantler
 
 > **Grow Your Space** — A premium plant commerce and care app built with Flutter.
 
