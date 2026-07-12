@@ -4,8 +4,9 @@ const cors       = require('cors');
 const helmet     = require('helmet');
 const rateLimit  = require('express-rate-limit');
 
-// Initialise DB pool on startup (logs success/failure)
-require('./config/db');
+// Initialize MongoDB connection
+const { connectDB } = require('./config/db');
+connectDB();
 
 const authRoutes  = require('./routes/auth.routes');
 const userRoutes  = require('./routes/user.routes');

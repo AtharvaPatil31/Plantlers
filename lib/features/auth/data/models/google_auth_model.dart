@@ -9,7 +9,6 @@ class GoogleAuthModel {
   final String? photoUrl;
   final String idToken;       // your backend's JWT access token
   final String refreshToken;  // your backend's refresh token
-  final String idToken;
 
   const GoogleAuthModel({
     required this.id,
@@ -32,7 +31,14 @@ class GoogleAuthModel {
         refreshToken: json['refresh_token'] as String,
       );
 
-  });
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'email': email,
+        'name': displayName,
+        'avatar_url': photoUrl,
+        'access_token': idToken,
+        'refresh_token': refreshToken,
+      };
 
   GoogleAuthEntity toEntity() => GoogleAuthEntity(
         id: id,
@@ -42,3 +48,4 @@ class GoogleAuthModel {
         idToken: idToken,
       );
 }
+

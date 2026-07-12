@@ -14,6 +14,14 @@ const transporter = nodemailer.createTransport({
  * Sends a 6-digit OTP email for password reset.
  */
 const sendOtpEmail = async (toEmail, otp) => {
+  // Check if email is configured
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log('\n=== EMAIL NOT CONFIGURED - DEVELOPMENT MODE ===');
+    console.log(`📧 OTP for ${toEmail}: ${otp}`);
+    console.log('==============================================\n');
+    return; // Skip actual email sending
+  }
+
   await transporter.sendMail({
     from: process.env.EMAIL_FROM,
     to: toEmail,

@@ -1,4 +1,4 @@
-const User = require('../models/userQueries');
+const { User, RefreshToken } = require('../models');
 
 // ── GET /user/profile ─────────────────────────────────────────────────────────
 exports.getProfile = async (req, res) => {
@@ -7,7 +7,7 @@ exports.getProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
-    return res.status(200).json(User.toSafeObject(user));
+    return res.status(200).json(user.toSafeObject());
   } catch (error) {
     console.error('Get profile error:', error);
     return res.status(500).json({ message: 'Failed to fetch profile.' });
@@ -27,12 +27,17 @@ exports.updateProfile = async (req, res) => {
       return res.status(400).json({ message: 'No fields provided to update.' });
     }
 
-    const user = await User.updateProfile(req.user.id, updates);
+    const user = await User.findByIdAndUpdate(
+      req.user.id, 
+      updates, 
+      { new: true, runValidators: true }
+    );
+    
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    return res.status(200).json(User.toSafeObject(user));
+    return res.status(200).json(user.toSafeObject());
   } catch (error) {
     console.error('Update profile error:', error);
     return res.status(500).json({ message: 'Failed to update profile.' });
@@ -42,8 +47,8 @@ exports.updateProfile = async (req, res) => {
 // ── DELETE /user/profile ──────────────────────────────────────────────────────
 exports.deleteAccount = async (req, res) => {
   try {
-    await User.deactivate(req.user.id);
-    await User.deleteAllRefreshTokens(req.user.id);
+    await User.findByIdAndUpdate(req.user.id, { isActive: false });
+    await RefreshToken.deleteMany({ userId: req.user.id });
     return res.status(200).json({ message: 'Account deactivated successfully.' });
   } catch (error) {
     console.error('Delete account error:', error);

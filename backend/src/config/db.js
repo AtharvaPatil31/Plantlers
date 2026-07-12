@@ -1,36 +1,37 @@
-const { Pool } = require('pg');
+const mongoose = require('mongoose');
 
-// Single connection pool — reused across all requests
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false, // Required for Supabase
-  },
-  max: 10,                  // max pool size
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+// MongoDB connection function
+const connectDB = async () => {
+  try {
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/plantlers';
+    
+    const conn = await mongoose.connect(mongoURI, {
+      // Mongoose 6+ handles these options automatically
+      // No need for useNewUrlParser, useUnifiedTopology, etc.
+    });
 
-// Test connection on startup
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('❌ Supabase connection failed:', err.message);
+    console.log(`✅ MongoDB connected: ${conn.connection.host}`);
+    
+    // Set up connection event listeners
+    mongoose.connection.on('error', (err) => {
+      console.error('❌ MongoDB connection error:', err);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      console.log('📡 MongoDB disconnected');
+    });
+
+    // Graceful shutdown
+    process.on('SIGINT', async () => {
+      await mongoose.connection.close();
+      console.log('🔒 MongoDB connection closed due to app termination');
+      process.exit(0);
+    });
+
+  } catch (error) {
+    console.error('❌ MongoDB connection failed:', error.message);
     process.exit(1);
   }
-  release();
-  console.log('✅ Supabase (PostgreSQL) connected');
-});
+};
 
-/**
- * Run a parameterized query.
- * Usage: db.query('SELECT * FROM users WHERE id = $1', [userId])
- */
-const query = (text, params) => pool.query(text, params);
-
-/**
- * Get a client for transactions.
- * Usage: const client = await db.getClient(); try { await client.query(...) }
- */
-const getClient = () => pool.connect();
-
-module.exports = { query, getClient, pool };
+module.exports = { connectDB };
