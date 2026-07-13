@@ -4,7 +4,7 @@ class ApiConstants {
   // ── Base URL ───────────────────────────────────────────────────────────────
   // Development: your local machine IP (not localhost — Android can't reach it)
   // Run `ipconfig` on Windows → use your IPv4 address e.g. 192.168.1.5
-  static const String baseUrl = 'http://192.168.1.5:3000/v1';
+  static const String baseUrl = 'http://192.168.1.5:5000/v1';
 
   // Production (update when deployed to Railway/Render):
   // static const String baseUrl = 'https://plantlers-api.railway.app/v1';

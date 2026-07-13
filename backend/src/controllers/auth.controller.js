@@ -1,5 +1,5 @@
 const { OAuth2Client } = require('google-auth-library');
-const User = require('../models/userQueries');
+const { User, RefreshToken } = require('../models');
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const { sendOtpEmail } = require('../utils/email');
 
@@ -7,18 +7,18 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ── Helper: build auth response + store refresh token ────────────────────────
 const buildAuthResponse = async (user) => {
-  const accessToken  = signAccessToken(user.id);
-  const refreshToken = signRefreshToken(user.id);
+  const accessToken  = signAccessToken(user._id);
+  const refreshToken = signRefreshToken(user._id);
 
-  await User.addRefreshToken(user.id, refreshToken);
+  await RefreshToken.addToken(user._id, refreshToken);
 
   return {
     access_token:  accessToken,
     refresh_token: refreshToken,
-    id:            user.id,
+    id:            user._id,
     email:         user.email,
     name:          user.name,
-    avatar_url:    user.avatar_url,
+    avatar_url:    user.avatarUrl,
   };
 };
 
@@ -32,7 +32,13 @@ exports.register = async (req, res) => {
       return res.status(409).json({ message: 'An account with this email already exists.' });
     }
 
-    const user = await User.createLocal({ name, email, password });
+    const user = await User.create({
+      name,
+      email,
+      passwordHash: password,
+      authProvider: 'local'
+    });
+
     const response = await buildAuthResponse(user);
 
     return res.status(201).json(response);
@@ -47,19 +53,19 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Fetch full row including password_hash
-    const user = await User.findByEmail(email);
+    // Fetch user including password hash
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+passwordHash');
 
-    if (!user || !user.password_hash) {
+    if (!user || !user.passwordHash) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
-    const isMatch = await User.comparePassword(password, user.password_hash);
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
-    if (!user.is_active) {
+    if (!user.isActive) {
       return res.status(403).json({ message: 'Account is deactivated.' });
     }
 
@@ -95,15 +101,21 @@ exports.googleSignIn = async (req, res) => {
 
     if (!user) {
       // New user — create Google account
-      user = await User.createGoogle({
+      user = await User.create({
         name: name || email.split('@')[0],
         email,
         googleId,
         avatarUrl: picture || null,
+        authProvider: 'google'
       });
-    } else if (!user.google_id) {
+    } else if (!user.googleId) {
       // Existing email/password user — link Google to their account
-      user = await User.linkGoogle(user.id, googleId, picture);
+      user.googleId = googleId;
+      user.authProvider = 'google';
+      if (picture && !user.avatarUrl) {
+        user.avatarUrl = picture;
+      }
+      await user.save();
     }
 
     const response = await buildAuthResponse(user);
@@ -129,13 +141,13 @@ exports.refreshToken = async (req, res) => {
     const decoded = verifyRefreshToken(refresh_token);
 
     // Check token exists in DB (not revoked)
-    const tokenRow = await User.findRefreshToken(refresh_token);
-    if (!tokenRow || !tokenRow.is_active) {
+    const tokenDoc = await RefreshToken.findWithUser(refresh_token);
+    if (!tokenDoc || !tokenDoc.userId.isActive) {
       return res.status(401).json({ message: 'Invalid refresh token.' });
     }
 
     // Rotate: delete old, issue new
-    await User.deleteRefreshToken(refresh_token);
+    await RefreshToken.deleteOne({ token: refresh_token });
 
     const user = await User.findById(decoded.sub);
     if (!user) return res.status(401).json({ message: 'User not found.' });
@@ -152,7 +164,7 @@ exports.logout = async (req, res) => {
   try {
     const { refresh_token } = req.body;
     if (refresh_token) {
-      await User.deleteRefreshToken(refresh_token);
+      await RefreshToken.deleteOne({ token: refresh_token });
     }
     return res.status(200).json({ message: 'Logged out successfully.' });
   } catch (error) {
@@ -168,14 +180,17 @@ exports.forgotPassword = async (req, res) => {
     const user = await User.findByEmail(email);
 
     // Always return 200 — don't reveal if email exists (security)
-    if (!user || user.auth_provider === 'google') {
+    if (!user || user.authProvider === 'google') {
       return res.status(200).json({ message: 'If this email exists, an OTP has been sent.' });
     }
 
     const otp    = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    await User.saveResetOtp(user.id, otp, expiry);
+    user.resetOtp = otp;
+    user.resetOtpExpiry = expiry;
+    await user.save();
+
     await sendOtpEmail(user.email, otp);
 
     return res.status(200).json({ message: 'If this email exists, an OTP has been sent.' });
@@ -190,20 +205,19 @@ exports.verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    // Fetch full row including otp fields
-    const { rows } = await require('../config/db').query(
-      'SELECT id, reset_otp, reset_otp_expiry FROM users WHERE email = $1 LIMIT 1',
-      [email.toLowerCase()]
-    );
-    const user = rows[0];
+    const user = await User.findOne({ 
+      email: email.toLowerCase(),
+      resetOtp: { $ne: null },
+      resetOtpExpiry: { $ne: null }
+    }).select('+resetOtp +resetOtpExpiry');
 
-    if (!user || !user.reset_otp || !user.reset_otp_expiry) {
+    if (!user || !user.resetOtp || !user.resetOtpExpiry) {
       return res.status(400).json({ message: 'Invalid or expired OTP.' });
     }
-    if (user.reset_otp !== otp) {
+    if (user.resetOtp !== otp) {
       return res.status(400).json({ message: 'Invalid OTP.' });
     }
-    if (new Date(user.reset_otp_expiry) < new Date()) {
+    if (new Date(user.resetOtpExpiry) < new Date()) {
       return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
     }
 
@@ -218,19 +232,22 @@ exports.resetPassword = async (req, res) => {
   try {
     const { email, otp, new_password } = req.body;
 
-    const { rows } = await require('../config/db').query(
-      'SELECT id, reset_otp, reset_otp_expiry FROM users WHERE email = $1 LIMIT 1',
-      [email.toLowerCase()]
-    );
-    const user = rows[0];
+    const user = await User.findOne({ 
+      email: email.toLowerCase() 
+    }).select('+resetOtp +resetOtpExpiry');
 
-    if (!user || user.reset_otp !== otp || new Date(user.reset_otp_expiry) < new Date()) {
+    if (!user || user.resetOtp !== otp || new Date(user.resetOtpExpiry) < new Date()) {
       return res.status(400).json({ message: 'Invalid or expired OTP.' });
     }
 
-    await User.updatePassword(user.id, new_password);
+    // Update password and clear OTP fields
+    user.passwordHash = new_password; // Will be hashed by pre-save middleware
+    user.resetOtp = null;
+    user.resetOtpExpiry = null;
+    await user.save();
+
     // Invalidate all refresh tokens — force re-login everywhere
-    await User.deleteAllRefreshTokens(user.id);
+    await RefreshToken.deleteMany({ userId: user._id });
 
     return res.status(200).json({ message: 'Password reset successfully.' });
   } catch (error) {

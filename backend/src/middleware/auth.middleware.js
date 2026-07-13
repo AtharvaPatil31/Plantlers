@@ -1,5 +1,5 @@
 const { verifyAccessToken } = require('../utils/jwt');
-const User = require('../models/userQueries');
+const { User } = require('../models');
 
 /**
  * Protects routes — verifies JWT access token.
@@ -17,11 +17,11 @@ const protect = async (req, res, next) => {
 
     // Confirm user still exists and is active
     const user = await User.findById(decoded.sub);
-    if (!user || !user.is_active) {
+    if (!user || !user.isActive) {
       return res.status(401).json({ message: 'User no longer exists.' });
     }
 
-    req.user = { id: user.id };
+    req.user = { id: user._id };
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {

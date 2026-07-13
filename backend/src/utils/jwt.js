@@ -1,24 +1,24 @@
 const jwt = require('jsonwebtoken');
 
 /**
- * Signs a short-lived access token (15 min default).
+ * Signs a short-lived access token (7 days default).
  */
 const signAccessToken = (userId) => {
   return jwt.sign(
     { sub: userId, type: 'access' },
-    process.env.JWT_ACCESS_SECRET,
-    { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m' }
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 };
 
 /**
- * Signs a long-lived refresh token (30 days default).
+ * Signs a long-lived refresh token (7 days default).
  */
 const signRefreshToken = (userId) => {
   return jwt.sign(
     { sub: userId, type: 'refresh' },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' }
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 };
 
@@ -26,14 +26,14 @@ const signRefreshToken = (userId) => {
  * Verifies an access token. Throws if invalid/expired.
  */
 const verifyAccessToken = (token) => {
-  return jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+  return jwt.verify(token, process.env.JWT_SECRET);
 };
 
 /**
  * Verifies a refresh token. Throws if invalid/expired.
  */
 const verifyRefreshToken = (token) => {
-  return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+  return jwt.verify(token, process.env.JWT_SECRET);
 };
 
 module.exports = {

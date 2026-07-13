@@ -34,9 +34,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # ── Supabase (auth + database — replaces Node.js backend) ───────────────
-  supabase_flutter: ^2.8.4
-
   # ── UI & Fonts ────────────────────────────────────────────────────────────
   cupertino_icons: ^1.0.8
   google_fonts: ^8.1.0
